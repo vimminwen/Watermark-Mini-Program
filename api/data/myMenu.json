@@ -1,0 +1,102 @@
+[
+	{
+		"id": "1",
+		"title": "常用功能",
+		"icon": "🎯",
+		"sort": "1",
+		"show": "1",
+		"children": [
+			{
+				"id": "1-1",
+				"title": "全部工具",
+				"icon": "🛠️",
+				"action": "goToTools",
+				"url": "/pages/use/index",
+				"sort": "1",
+				"show": "1"
+			},
+			{
+				"id": "1-2",
+				"title": "收藏夹",
+				"icon": "⭐",
+				"action": "",
+				"url": "/pages/my/favorites",
+				"sort": "2",
+				"show": "1"
+			},
+			
+			{
+				"id": "1-4",
+				"title": "设置",
+				"icon": "⚙️",
+				"action": "",
+				"url": "/pages/my/settings",
+				"sort": "4",
+				"show": "1"
+			}
+		]
+	},
+	{
+		"id": "2",
+		"title": "关于",
+		"icon": "ℹ️",
+		"sort": "2",
+		"show": "1",
+		"children": [
+			{
+				"id": "2-1",
+				"title": "关于我们",
+				"icon": "🏢",
+				"action": "",
+				"url": "/pages/my/about",
+				"sort": "1",
+				"show": "1"
+			},
+			{
+				"id": "2-2",
+				"title": "联系客服",
+				"icon": "📞",
+				"action": "",
+				"url": "/pages/my/contact",
+				"sort": "2",
+				"show": "1"
+			},
+			{
+				"id": "2-3",
+				"title": "用户协议",
+				"icon": "📜",
+				"action": "",
+				"url": "/pages/my/agreement",
+				"sort": "3",
+				"show": "1"
+			},
+			{
+				"id": "2-4",
+				"title": "隐私政策",
+				"icon": "🔒",
+				"action": "",
+				"url": "/pages/my/privacy",
+				"sort": "4",
+				"show": "1"
+			},
+			{
+				"id": "2-5",
+				"title": "常见问题",
+				"icon": "❓",
+				"action": "",
+				"url": "/pages/my/faq",
+				"sort": "5",
+				"show": "1"
+			},
+			{
+				"id": "2-6",
+				"title": "关注公众号",
+				"icon": "💬",
+				"action": "",
+				"url": "/pages/my/wechat",
+				"sort": "6",
+				"show": "1"
+			}
+		]
+	}
+]

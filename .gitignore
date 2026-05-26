@@ -1,0 +1,10 @@
+# 构建产物
+unpackage/
+
+# 依赖
+node_modules/
+
+# 编辑器与系统
+.DS_Store
+.hbuilderx/
+*.log

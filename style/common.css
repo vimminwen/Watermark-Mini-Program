@@ -1,0 +1,92 @@
+.status_bar {
+	width: 100%;
+	height: var(--status-bar-height);
+}
+
+.commBodyBox {
+	width: 100%;
+	padding: 20rpx;
+	box-sizing: border-box;
+}
+
+.commOuterBox {
+	width: 100%;
+	padding: 20rpx;
+	box-sizing: border-box;
+	background: #00000064;
+	border-radius: 20rpx;
+	margin: 0 0 25rpx 0;
+	box-shadow: 10rpx 10rpx 10rpx #e0e0e0;
+}
+
+.btnBottomFixedView {
+	width: 100%;
+	position: fixed;
+	bottom: 60rpx;
+	left: 0;
+	z-index: 99;
+	padding: 0 20rpx;
+	box-sizing: border-box;
+}
+
+.displayAlign {
+	display: flex;
+	align-items: center;
+}
+
+/* 标题左边的线框 */
+.title-line {
+	width: 10rpx;
+	height: 30rpx;
+	border-radius: 1rpx;
+	margin: 0 20rpx 0 0;
+}
+
+/* 文字超出1行省略 */
+.text-ellipsis {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 1;
+	-webkit-box-orient: vertical;
+	word-break: break-all;
+}
+
+/* 添加删除线 */
+.deleted-text {
+	text-decoration: line-through;
+}
+
+.img100 {
+	width: 100%;
+	height: 100%;
+	border-radius: 20rpx;
+}
+
+.font30 {
+	font-size: 30rpx;
+}
+
+.font25 {
+	font-size: 25rpx;
+}
+
+.fontWeight {
+	font-weight: bold;
+}
+
+/* uview标题样式 */
+.title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0 4rpx;
+	margin-bottom: 20rpx;
+}
+
+.stickyBox {
+	position: sticky;
+	top: 0;
+	left: 0;
+	z-index: 100;
+}

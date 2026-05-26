@@ -1,0 +1,57 @@
+/* 主题背景色 */
+.themeBgColor {
+	background: #233968;
+}
+
+/* 页面渐变背景 */
+page {
+	background: linear-gradient(to bottom, #050d40, #233968);
+	min-height: 100vh;
+	color: #ffffff;
+	font-size: 30rpx;
+}
+
+/* 主题文字色 */
+.themeColor {
+	color: #233968;
+}
+
+/* 卡片背景 */
+.boxBg{
+	background: rgba(0, 0, 0, 0.4);
+}
+
+/* 成功色 */
+.green, .success {
+	color: #00aa00;
+}
+
+/* 错误色 */
+.red, .error {
+	color: #ff0000;
+}
+
+/* 警告色 */
+.warning {
+	color: #ffa500;
+}
+
+/* 灰色文字 */
+.grey {
+	color: #999999;
+}
+
+/* 白色文字 */
+.white {
+	color: #ffffff;
+}
+
+/* 蓝色渐变装饰线 */
+.line-blue {
+	background: linear-gradient(to bottom, #4facfe, #00f2fe);
+}
+
+/* 粉色渐变装饰线 */
+.line-pink {
+	background: linear-gradient(to bottom, #fa709a, #fee140);
+}
