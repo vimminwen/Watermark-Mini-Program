@@ -1,6 +1,9 @@
 <template>
 	<dark-page-meta />
 	<view class="home-page">
+		<HomeSkeleton v-if="pageLoading" />
+
+		<block v-else>
 		<!-- 轮播图 -->
 		<view class="banner-section">
 			<Banner3D />
@@ -20,17 +23,17 @@
 			</view>
 		</view>
 
-		<!-- 全部工具列表 -->
+		<!-- 更多工具列表 -->
 		<view class="all-tools">
 			<view class="section-title">
 				<view class="title-line"></view>
-				<text class="title-text">全部工具</text>
-				<text class="tool-count">({{ toolList.length }}个)</text>
+				<text class="title-text">更多工具</text>
+				<text class="tool-count">({{ moreTools.length }}个)</text>
 			</view>
 
 			<view class="tools-list">
-				<navigator :url="item.url+'?title='+item.title" class="tool-item boxBg"
-					v-for="(item, index) in toolList" :key="item.id" :style="{ animationDelay: (index * 0.05) + 's' }">
+				<navigator :url="getToolNavigateUrl(item)" class="tool-item boxBg"
+					v-for="(item, index) in moreTools" :key="item.id" :style="{ animationDelay: (index * 0.05) + 's' }">
 					<view class="item-left">
 						<image class="item-icon" :src="item.img" mode="aspectFit"></image>
 					</view>
@@ -38,10 +41,11 @@
 						<view class="item-title">{{item.title}}</view>
 						<view class="item-content">{{item.content}}</view>
 					</view>
-					<view class="arrow">></view>
+					<text class="iconfont icon-xiangyou"></text>
 				</navigator>
 			</view>
 		</view>
+		</block>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -52,30 +56,41 @@
 		computed,
 		onMounted
 	} from 'vue'
-	import Banner3D from "@/components/common/Banner3D.vue"
+	import Banner3D from '@/components/common/Banner3D.vue'
+	import HomeSkeleton from '@/components/common/HomeSkeleton.vue'
 	import dataList from '@/api/data/list.json'
+	import { buildToolUrl, filterQuickTools, filterMoreTools, navigateByPageUrl } from '@/utils/tool/toolRegistry.js'
 
+	const pageLoading = ref(true)
 	const toolList = ref([])
 
-	// 快捷工具（取前6个）
-	const quickTools = computed(() => {
-		return toolList.value.slice(0, 6)
-	})
+	// 快捷工具（location 为 1）
+	const quickTools = computed(() => filterQuickTools(toolList.value))
+
+	// 更多工具（location 不为 1）
+	const moreTools = computed(() => filterMoreTools(toolList.value))
+
+	const getToolNavigateUrl = (item) => buildToolUrl(item)
 
 	const navigateToTool = (tool) => {
-		uni.navigateTo({
-			url: "/pages/tool/tool"
-		})
-		return;
-		if (tool.url) {
-			uni.navigateTo({
-				url: tool.url + '?title=' + tool.title
-			})
+		navigateByPageUrl(getToolNavigateUrl(tool))
+	}
+
+	const loadHomeData = async () => {
+		pageLoading.value = true
+		try {
+			// 本地数据；后续可替换为接口请求
+			toolList.value = (dataList || []).filter((item) => item.del !== '1')
+		} catch (e) {
+			console.error('[loadHomeData]', e)
+			toolList.value = []
+		} finally {
+			pageLoading.value = false
 		}
 	}
 
 	onMounted(() => {
-		toolList.value = dataList
+		loadHomeData()
 	})
 </script>
 
@@ -229,7 +244,7 @@
 				}
 			}
 
-			.arrow {
+			.icon-xiangyou {
 				font-size: 28rpx;
 				color: rgba(255, 255, 255, 0.5);
 				margin-left: 15rpx;

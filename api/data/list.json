@@ -1,209 +1,342 @@
-[{
+[
+
+	{
+
 		"id": "46",
-		"cid": "101",
+
+		"cid": "103",
+
 		"img": "/static/images/box.png",
-		"title": "图片格式转换",
-		"content": "支持JPG、PNG、WebP、BMP、GIF等多种格式互转，一键转换图片格式，适配不同平台需求。",
+
+		"title": "图片编辑",
+
+		"content": "提供裁剪、旋转、调色、滤镜等基础编辑功能，一站式处理图片，满足日常修图需求。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/imageEdit",
+
+		"location": "1",
+
 		"sort": "8",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "47",
-		"cid": "101",
+
+		"cid": "102",
+
 		"img": "/static/images/box.png",
-		"title": "图片尺寸调整",
-		"content": "按像素或百分比自定义调整图片尺寸，支持等比例缩放，批量修改多张图片大小。",
+
+		"title": "智能消除笔",
+
+		"content": "AI智能识别并移除图片中不需要的物体、水印、文字或人物，自动填充背景不留痕迹。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/smartErase",
+
+		"location": "1",
+
 		"sort": "9",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "48",
-		"cid": "101",
+
+		"cid": "102",
+
 		"img": "/static/images/box.png",
-		"title": "图片去背景",
-		"content": "AI智能识别并移除图片背景，一键生成透明背景图，支持人像、商品、动物等多种主体。",
+
+		"title": "智能抠图",
+
+		"content": "AI精准识别主体轮廓，一键去除背景，支持人像、商品、动物等复杂边缘精细抠图。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/cutout",
+
+		"location": "1",
+
 		"sort": "10",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "49",
-		"cid": "101",
+
+		"cid": "106",
+
 		"img": "/static/images/box.png",
-		"title": "图片马赛克/模糊",
-		"content": "自由涂抹添加马赛克或模糊效果，可调节模糊强度，保护隐私或突出重点区域。",
+
+		"title": "图片动漫化",
+
+		"content": "一键将真实照片转换为二次元动漫风格，支持日系、新海诚、宫崎骏等多种动漫画风。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/styleTransfer?styleKey=anime",
+
+		"location": "2",
+
 		"sort": "11",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
-		"id": "50",
-		"cid": "101",
-		"img": "/static/images/box.png",
-		"title": "图片锐化/降噪",
-		"content": "提升图片清晰度和边缘细节，智能降低噪点，让模糊图片变得更锐利清晰。",
-		"reader": "0",
-		"url": "",
-		"admin": "1",
-		"sort": "12",
-		"my": "1",
-		"del": "0"
-	},
-	{
-		"id": "51",
-		"cid": "101",
-		"img": "/static/images/box.png",
-		"title": "图片镜像/翻转",
-		"content": "水平翻转、垂直翻转图片，一键生成镜像效果，适合对称构图或创意设计。",
-		"reader": "0",
-		"url": "",
-		"admin": "1",
-		"sort": "13",
-		"my": "1",
-		"del": "0"
-	},
-	{
+
 		"id": "52",
-		"cid": "101",
+
+		"cid": "105",
+
 		"img": "/static/images/box.png",
-		"title": "图片批处理",
-		"content": "一次性上传多张图片，批量执行裁剪、压缩、格式转换、水印等操作，大幅提升效率。",
+
+		"title": "视频消除",
+
+		"content": "AI智能去除视频中不需要的物体、水印、字幕或人物，自动填充背景，保持视频流畅。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/videoRemove",
+
+		"location": "1",
+
 		"sort": "14",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
-		"id": "53",
-		"cid": "101",
-		"img": "/static/images/box.png",
-		"title": "图片EXIF信息查看/编辑",
-		"content": "查看图片的拍摄参数、时间、设备等信息，支持编辑或删除EXIF数据，保护隐私。",
-		"reader": "0",
-		"url": "",
-		"admin": "1",
-		"sort": "15",
-		"my": "1",
-		"del": "0"
-	},
-	{
+
 		"id": "54",
-		"cid": "101",
+
+		"cid": "104",
+
 		"img": "/static/images/box.png",
-		"title": "图片无损放大",
-		"content": "AI智能算法放大图片分辨率，同时保持清晰度不模糊，最高支持4倍无损放大。",
+
+		"title": "视频转文字",
+
+		"content": "自动提取视频中的音频并转写为文字，支持多语言识别，生成字幕文件或纯文本。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/feature?id=54",
+
+		"location": "1",
+
 		"sort": "16",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "55",
-		"cid": "101",
+
+		"cid": "102",
+
 		"img": "/static/images/box.png",
-		"title": "动图制作/GIF编辑",
-		"content": "多张图片合成GIF动图，支持GIF裁剪、压缩、添加文字/水印，调整播放速度。",
+
+		"title": "无损放大",
+
+		"content": "AI智能算法放大图片分辨率，同时保持清晰度不模糊，最高支持4倍无损放大。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/tool",
+
+		"location": "2",
+
 		"sort": "17",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "56",
-		"cid": "101",
+
+		"cid": "106",
+
 		"img": "/static/images/box.png",
-		"title": "图片黑白/复古特效",
-		"content": "一键转换为黑白照、怀旧复古、老照片效果，添加颗粒感或划痕滤镜。",
+
+		"title": "图片赛博化",
+
+		"content": "将照片转换为赛博朋克风格，霓虹光影、高对比色调，打造未来科幻视觉。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/styleTransfer?styleKey=cyber",
+
+		"location": "2",
+
 		"sort": "18",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "57",
-		"cid": "101",
+
+		"cid": "106",
+
 		"img": "/static/images/box.png",
-		"title": "证件照制作",
-		"content": "一键生成标准证件照，支持一寸、二寸等常用尺寸，可更换背景色（红/蓝/白底）。",
+
+		"title": "图片古风化",
+
+		"content": "一键生成水墨、工笔、汉服写真等中国风效果，呈现古典雅致画面质感。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/styleTransfer?styleKey=guofeng",
+
+		"location": "2",
+
 		"sort": "19",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "58",
-		"cid": "101",
+
+		"cid": "103",
+
 		"img": "/static/images/box.png",
-		"title": "图片转素描/油画",
-		"content": "将图片转换为素描、水彩、油画、漫画等艺术风格，一键生成艺术作品。",
+
+		"title": "图片压缩",
+
+		"content": "智能压缩图片体积，在尽量保持清晰度的前提下减小文件大小，便于分享与上传。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/imageCompress",
+
+		"location": "2",
+
 		"sort": "20",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "59",
-		"cid": "101",
+
+		"cid": "104",
+
 		"img": "/static/images/box.png",
-		"title": "图片圆角/阴影特效",
-		"content": "添加圆角效果，自定义圆角半径；添加投影/内阴影，调节阴影颜色、模糊度、偏移量。",
+
+		"title": "图片提取文字",
+
+		"content": "从图片中识别并提取文字内容，支持复制、导出，适用于截图、海报、文档等场景。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/feature?id=59",
+
+		"location": "2",
+
 		"sort": "21",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "60",
-		"cid": "101",
+
+		"cid": "103",
+
 		"img": "/static/images/box.png",
-		"title": "图片转Base64",
-		"content": "将图片转换为Base64编码字符串，适合嵌入HTML/CSS/JSON，减少HTTP请求。",
+
+		"title": "图片剪切",
+
+		"content": "自由裁剪图片尺寸与比例，支持常用比例与自定义区域，快速截取所需画面。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/tool/imageCrop",
+
+		"location": "2",
+
 		"sort": "22",
+
 		"my": "1",
+
 		"del": "0"
+
 	},
+
 	{
+
 		"id": "61",
-		"cid": "101",
+
+		"cid": "103",
+
 		"img": "/static/images/box.png",
-		"title": "图片OCR文字识别",
-		"content": "识别图片中的文字内容，支持中文、英文等多语言，可复制或导出识别结果。",
+
+		"title": "图片滤镜",
+
+		"content": "多种风格滤镜一键套用，支持强度调节，本地处理保护隐私。",
+
 		"reader": "0",
-		"url": "",
-		"admin": "1",
+
+		"url": "/pages/filter/filter",
+
+		"location": "1",
+
 		"sort": "23",
+
 		"my": "1",
+
 		"del": "0"
+
 	}
+
 ]
+

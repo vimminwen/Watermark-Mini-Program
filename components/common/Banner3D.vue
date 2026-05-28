@@ -1,9 +1,13 @@
 <template>
-	<view class="banner_3d" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+	<view class="banner_3d" @touchstart="onTouchStart" @touchend="onTouchEnd">
 		<view class="content" :style="{ transform: 'translateZ(-30vw) rotateY(' + rotateY + 'deg)' }">
-			<navigator v-for="(item, index) in bannerList" :key="item.id" :url="item.url" class="item">
+			<view
+				v-for="item in bannerList"
+				:key="item.id"
+				class="item"
+			>
 				<image :src="item.img" mode="widthFix"></image>
-			</navigator>
+			</view>
 		</view>
 	</view>
 </template>
@@ -16,14 +20,16 @@
 		onUnmounted
 	} from 'vue'
 	import bannerData from '@/api/data/banner.json'
+	import { navigateByPageUrl } from '@/utils/tool/toolRegistry.js'
 
 	const bannerList = bannerData
 
 	const rotateY = ref(0)
 	const touchStartX = ref(0)
-	const touchEndX = ref(0)
 	const isAutoPlaying = ref(true)
 	let autoPlayTimer = null
+
+	const SWIPE_THRESHOLD = 50
 
 	// 计算当前显示的索引
 	const currentIndex = computed(() => {
@@ -67,25 +73,31 @@
 		}
 	}
 
+	const onBannerTap = () => {
+		const item = bannerList[currentIndex.value]
+		navigateByPageUrl(item?.url)
+	}
+
 	// 触摸事件处理
 	const onTouchStart = (e) => {
 		touchStartX.value = e.touches[0].clientX
 		isAutoPlaying.value = false
 	}
 
-	const onTouchMove = (e) => {
-		touchEndX.value = e.touches[0].clientX
-	}
+	const onTouchEnd = (e) => {
+		const endX = e.changedTouches?.[0]?.clientX ?? touchStartX.value
+		const diff = endX - touchStartX.value
 
-	const onTouchEnd = () => {
-		const diff = touchEndX.value - touchStartX.value
-		if (Math.abs(diff) > 50) {
+		if (Math.abs(diff) > SWIPE_THRESHOLD) {
 			if (diff > 0) {
 				prevSlide()
 			} else {
 				nextSlide()
 			}
+		} else {
+			onBannerTap()
 		}
+
 		setTimeout(() => {
 			isAutoPlaying.value = true
 		}, 1000)

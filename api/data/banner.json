@@ -1,13 +1,13 @@
 [{
 	"id": 1,
-	"url": "/pages/more/more?id=2",
+	"url": "/pages/member/recharge",
 	"img": "/static/images/banner/1.jpg"
 }, {
 	"id": 2,
-	"url": "/pages/home/bgList",
+	"url": "/pages/tool/videoRemove",
 	"img": "/static/images/banner/2.jpg"
 }, {
 	"id": 3,
-	"url": "/pages/home/home",
+	"url": "/pages/filter/filter",
 	"img": "/static/images/banner/3.jpg"
 }]

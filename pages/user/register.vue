@@ -3,7 +3,7 @@
 	<view class="register-page">
 		<view class="header">
 			<view class="title">注册账号</view>
-			<view class="subtitle">加入图片工具箱</view>
+			<view class="subtitle">加入汇水印</view>
 		</view>
 		
 		<view class="register-form">
@@ -19,17 +19,14 @@
 			</view>
 			
 			<view class="input-group">
-				<text class="input-icon">🔐</text>
+				<text class="input-icon">👤</text>
 				<input 
 					class="input-field" 
-					type="number" 
-					placeholder="请输入验证码"
-					v-model="code"
-					maxlength="6"
+					type="text" 
+					placeholder="昵称（选填）"
+					v-model="nickname"
+					maxlength="20"
 				/>
-				<view class="send-code" :class="{ disabled: countdown > 0 }" @click="sendCode">
-					<text>{{ countdown > 0 ? countdown + 's' : '获取验证码' }}</text>
-				</view>
 			</view>
 			
 			<view class="input-group">
@@ -54,8 +51,8 @@
 				/>
 			</view>
 			
-			<view class="register-button" @click="handleRegister">
-				<text>注册</text>
+			<view class="register-button" :class="{ disabled: loading }" @click="handleRegister">
+				<text>{{ loading ? '注册中...' : '注册' }}</text>
 			</view>
 			
 			<view class="login-link">
@@ -69,36 +66,28 @@
 
 <script setup>
 	import { ref } from 'vue'
+	import { apiLogin, apiRegister } from '@/api/api.js'
+	import {
+		isRegisterSuccess,
+		isLoginSuccess,
+		extractRegisterUserId,
+		getApiMessage
+	} from '@/utils/user/authHelper.js'
+	import { clearAuthSession, persistAuthSession, refreshUserProfile } from '@/utils/user/session.js'
+	import { buildLoginPayload } from '@/utils/user/rsaEncrypt.js'
 
 	const phone = ref('')
-	const code = ref('')
+	const nickname = ref('')
 	const password = ref('')
 	const confirmPassword = ref('')
-	const countdown = ref(0)
+	const loading = ref(false)
 
-	const sendCode = () => {
-		if (countdown.value > 0) return
-		if (!phone.value || phone.value.length !== 11) {
+	const isValidPhone = () => /^1\d{10}$/.test(phone.value)
+
+	const handleRegister = async () => {
+		if (loading.value) return
+		if (!isValidPhone()) {
 			uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
-			return
-		}
-		countdown.value = 60
-		const timer = setInterval(() => {
-			countdown.value--
-			if (countdown.value <= 0) {
-				clearInterval(timer)
-			}
-		}, 1000)
-		uni.showToast({ title: '验证码已发送', icon: 'none' })
-	}
-
-	const handleRegister = () => {
-		if (!phone.value) {
-			uni.showToast({ title: '请输入手机号', icon: 'none' })
-			return
-		}
-		if (!code.value) {
-			uni.showToast({ title: '请输入验证码', icon: 'none' })
 			return
 		}
 		if (!password.value || password.value.length < 6) {
@@ -109,7 +98,69 @@
 			uni.showToast({ title: '两次密码不一致', icon: 'none' })
 			return
 		}
-		uni.showToast({ title: '注册功能开发中', icon: 'none' })
+
+		const finalNickname = nickname.value.trim() || `用户${phone.value.slice(-4)}`
+
+		loading.value = true
+		uni.showLoading({ title: '注册中...', mask: true })
+		try {
+			const registerRes = await apiRegister({
+				phone: phone.value,
+				password: password.value,
+				nickname: finalNickname,
+				email: '',
+				image: ''
+			})
+			const registerBody = registerRes.data
+			if (!isRegisterSuccess(registerBody)) {
+				uni.showToast({ title: getApiMessage(registerBody, '注册失败'), icon: 'none' })
+				return
+			}
+
+			const registeredUserId = extractRegisterUserId(registerBody)
+
+			uni.showLoading({ title: '正在登录...', mask: true })
+			clearAuthSession()
+			const loginRes = await apiLogin(buildLoginPayload(phone.value, password.value))
+			const loginBody = loginRes.data
+			if (!isLoginSuccess(loginBody)) {
+				uni.showToast({ title: getApiMessage(loginBody, '注册成功，请登录'), icon: 'none' })
+				setTimeout(() => {
+					uni.navigateBack()
+				}, 1500)
+				return
+			}
+
+			const { token, userId } = persistAuthSession(loginBody)
+			if (!token) {
+				uni.showToast({ title: '注册成功，请登录', icon: 'none' })
+				setTimeout(() => {
+					uni.navigateBack()
+				}, 1500)
+				return
+			}
+
+			const finalUserId = userId || registeredUserId
+			if (finalUserId) {
+				await refreshUserProfile(finalUserId)
+			}
+
+			uni.showToast({ title: getApiMessage(registerBody, '注册成功'), icon: 'success' })
+			setTimeout(() => {
+				uni.navigateBack({ delta: 2 })
+			}, 1500)
+		} catch (err) {
+			console.error('[handleRegister]', err)
+			const msg = err?.message || getApiMessage(err?.data, '操作失败，请稍后重试')
+			if (err?.type === 'NO_TOKEN') {
+				uni.showToast({ title: '注册成功，请登录', icon: 'none' })
+			} else {
+				uni.showToast({ title: msg, icon: 'none' })
+			}
+		} finally {
+			loading.value = false
+			uni.hideLoading()
+		}
 	}
 
 	const goToLogin = () => {
@@ -164,19 +215,6 @@
 					color: rgba(255, 255, 255, 0.4);
 				}
 			}
-
-			.send-code {
-				padding: 15rpx 25rpx;
-				background: rgba(79, 172, 254, 0.2);
-				border-radius: 30rpx;
-				font-size: 24rpx;
-				color: #4facfe;
-
-				&.disabled {
-					color: rgba(255, 255, 255, 0.4);
-					background: rgba(255, 255, 255, 0.05);
-				}
-			}
 		}
 
 		.register-button {
@@ -186,6 +224,10 @@
 			text-align: center;
 			margin-top: 30rpx;
 			margin-bottom: 40rpx;
+
+			&.disabled {
+				opacity: 0.7;
+			}
 
 			text {
 				font-size: 32rpx;

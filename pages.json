@@ -18,20 +18,6 @@
 			}
 		},
 		{
-			"path": "pages/my/favorites",
-			"style": {
-				"navigationBarTitleText": "收藏夹",
-				"navigationBarBackgroundColor": "#050d40"
-			}
-		},
-		{
-			"path": "pages/member/history",
-			"style": {
-				"navigationBarTitleText": "使用记录",
-				"navigationBarBackgroundColor": "#050d40"
-			}
-		},
-		{
 			"path": "pages/my/settings",
 			"style": {
 				"navigationBarTitleText": "设置",
@@ -137,16 +123,86 @@
 			}
 		},
 		{
-			"path" : "pages/tool/tool",
-			"style" : 
-			{
-				"navigationBarTitleText" : "工具"
+			"path": "pages/tool/tool",
+			"style": {
+				"navigationBarTitleText": "无损放大",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/feature",
+			"style": {
+				"navigationBarTitleText": "功能",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/imageEdit",
+			"style": {
+				"navigationBarTitleText": "图片编辑",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/styleTransfer",
+			"style": {
+				"navigationBarTitleText": "风格转换",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/cutout",
+			"style": {
+				"navigationBarTitleText": "智能抠图",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/smartErase",
+			"style": {
+				"navigationBarTitleText": "智能消除笔",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/imageCompress",
+			"style": {
+				"navigationBarTitleText": "图片压缩",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/imageCrop",
+			"style": {
+				"navigationBarTitleText": "图片剪切",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/videoRemove",
+			"style": {
+				"navigationBarTitleText": "视频消除",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/videoParsing/videoParsing",
+			"style": {
+				"navigationBarTitleText": "视频解析",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/filter/filter",
+			"style": {
+				"navigationBarTitleText": "滤镜",
+				"navigationBarBackgroundColor": "#050d40"
 			}
 		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "图片工具箱",
+		"navigationBarTitleText": "汇水印",
 		"navigationBarBackgroundColor": "#050d40",
 		"backgroundColor": "#050d40",
 		"backgroundColorContent": "#050d40",
@@ -160,24 +216,31 @@
 		"backgroundColor": "#233968",
 		"borderStyle": "black",
 		"list": [{
-				"pagePath": "pages/index/index",
-				"text": "首页",
-				"iconPath": "/static/images/tabar/index.png",
-				"selectedIconPath": "/static/images/tabar/index1.png"
-			},
-			{
-				"pagePath": "pages/use/index",
-				"text": "功能",
-				"iconPath": "/static/images/tabar/more.png",
-				"selectedIconPath": "/static/images/tabar/more1.png"
-			},
-			{
-				"pagePath": "pages/my/index",
-				"text": "我的",
-				"iconPath": "/static/images/tabar/home.png",
-				"selectedIconPath": "/static/images/tabar/home1.png"
-			}
-		]
+			"pagePath": "pages/index/index",
+			"text": "首页",
+			"iconPath": "/static/images/tabar/index.png",
+			"selectedIconPath": "/static/images/tabar/index1.png"
+		}, {
+			"pagePath": "pages/use/index",
+			"text": "功能",
+			"iconPath": "/static/images/tabar/more.png",
+			"selectedIconPath": "/static/images/tabar/more1.png"
+		}, {
+			"pagePath": "pages/tool/videoRemove",
+			"text": "视频消除",
+			"iconPath": "/static/images/tabar/shipin-tianchong.png",
+			"selectedIconPath": "/static/images/tabar/shipin-tianchong1.png"
+		}, {
+			"pagePath": "pages/filter/filter",
+			"text": "滤镜",
+			"iconPath": "/static/images/tabar/mobanlvjing.png",
+			"selectedIconPath": "/static/images/tabar/mobanlvjing1.png"
+		}, {
+			"pagePath": "pages/my/index",
+			"text": "我的",
+			"iconPath": "/static/images/tabar/home.png",
+			"selectedIconPath": "/static/images/tabar/home1.png"
+		}]
 	},
 	"uniIdRouter": {}
 }

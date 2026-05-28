@@ -9,7 +9,7 @@
 						<text class="mask-text">扫码关注</text>
 					</view>
 				</view>
-				<text class="qr-title">图片工具箱</text>
+				<text class="qr-title">汇水印</text>
 				<text class="qr-desc">关注公众号获取更多实用工具</text>
 			</view>
 			

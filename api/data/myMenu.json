@@ -16,16 +16,6 @@
 				"show": "1"
 			},
 			{
-				"id": "1-2",
-				"title": "收藏夹",
-				"icon": "⭐",
-				"action": "",
-				"url": "/pages/my/favorites",
-				"sort": "2",
-				"show": "1"
-			},
-			
-			{
 				"id": "1-4",
 				"title": "设置",
 				"icon": "⚙️",

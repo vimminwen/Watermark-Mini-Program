@@ -2,7 +2,6 @@
 	<dark-page-meta />
 	<view class="recharge-page">
 		<view class="header">
-			<view class="title">会员充值</view>
 			<view class="subtitle">选择适合您的会员套餐</view>
 		</view>
 		
@@ -56,7 +55,6 @@
 			<view class="pay-button" @click="handlePay">立即支付</view>
 		</view>
 	</view>
-	<safe-area-bottom />
 </template>
 
 <script setup>
@@ -99,21 +97,17 @@
 <style lang="scss">
 	.recharge-page {
 		min-height: 100vh;
+		box-sizing: border-box;
 		background: linear-gradient(to bottom, #050d40, #233968);
 		padding: 30rpx;
-		padding-bottom: 200rpx;
+		/* 为底部固定支付栏 + 安全区留出滚动空间 */
+		padding-bottom: calc(200rpx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 	}
 
 	.header {
 		text-align: center;
 		padding: 40rpx 0;
-
-		.title {
-			font-size: 48rpx;
-			font-weight: bold;
-			color: #ffffff;
-			margin-bottom: 15rpx;
-		}
 
 		.subtitle {
 			font-size: 28rpx;
@@ -279,9 +273,13 @@
 		left: 0;
 		right: 0;
 		bottom: 0;
+		z-index: 100;
+		box-sizing: border-box;
 		background: rgba(5, 13, 64, 0.95);
 		backdrop-filter: blur(20rpx);
 		padding: 30rpx;
+		padding-bottom: calc(30rpx + constant(safe-area-inset-bottom));
+		padding-bottom: calc(30rpx + env(safe-area-inset-bottom));
 		display: flex;
 		align-items: center;
 		justify-content: space-between;

@@ -2,7 +2,7 @@
 	<dark-page-meta />
 	<view class="modify-password-page">
 		<view class="header">
-			<view class="title">修改密码</view>
+			<view class="title">{{ hasPassword ? '修改密码' : '设置密码' }}</view>
 			<view class="subtitle">{{ hasPassword ? '请输入旧密码和新密码' : '请设置您的登录密码' }}</view>
 		</view>
 		
@@ -40,8 +40,8 @@
 		</view>
 		
 		<view class="submit-section">
-			<view class="submit-btn" @click="handleSubmit">
-				<text>{{ hasPassword ? '修改密码' : '设置密码' }}</text>
+			<view class="submit-btn" :class="{ disabled: loading }" @click="handleSubmit">
+				<text>{{ loading ? '提交中...' : (hasPassword ? '修改密码' : '设置密码') }}</text>
 			</view>
 		</view>
 	</view>
@@ -51,20 +51,48 @@
 <script setup>
 	import { ref } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
+	import { apiModifyUserPw } from '@/api/api.js'
+	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
+	import { clearAuthSession } from '@/utils/user/session.js'
+	import { encryptRsa } from '@/utils/user/rsaEncrypt.js'
+	import { hasValidToken } from '@/utils/request.js'
+	import { resolveHasPassword } from '@/utils/user/passwordStatus.js'
 
-	const hasPassword = ref(true)
+	const hasPassword = ref(false)
 	const oldPassword = ref('')
 	const newPassword = ref('')
 	const confirmPassword = ref('')
+	const phone = ref('')
+	const loading = ref(false)
 
 	onLoad(() => {
+		const stored = uni.getStorageSync('userInfoStorage')
 		const userInfo = uni.getStorageSync('userInfo')
-		if (userInfo) {
-			hasPassword.value = userInfo.hasPassword !== false
-		}
+		hasPassword.value = resolveHasPassword(stored, resolveHasPassword(userInfo, false))
+		phone.value = userInfo?.phone || stored?.phone || ''
 	})
 
-	const handleSubmit = () => {
+	const goToLoginAfterSuccess = () => {
+		clearAuthSession()
+		uni.showToast({ title: '修改成功', icon: 'success' })
+		setTimeout(() => {
+			uni.reLaunch({ url: '/pages/user/login' })
+		}, 1500)
+	}
+
+	const handleSubmit = async () => {
+		if (loading.value) return
+		if (!hasValidToken()) {
+			uni.showToast({ title: '请先登录', icon: 'none' })
+			setTimeout(() => {
+				uni.reLaunch({ url: '/pages/user/login' })
+			}, 1500)
+			return
+		}
+		if (!phone.value) {
+			uni.showToast({ title: '未获取到手机号，请重新登录', icon: 'none' })
+			return
+		}
 		if (hasPassword.value && !oldPassword.value) {
 			uni.showToast({ title: '请输入旧密码', icon: 'none' })
 			return
@@ -77,13 +105,31 @@
 			uni.showToast({ title: '两次密码不一致', icon: 'none' })
 			return
 		}
-		const info = uni.getStorageSync('userInfo') || {}
-		info.hasPassword = true
-		uni.setStorageSync('userInfo', info)
-		uni.showToast({ title: '密码设置成功', icon: 'success' })
-		setTimeout(() => {
-			uni.navigateBack()
-		}, 1500)
+
+		loading.value = true
+		uni.showLoading({ title: '提交中...', mask: true })
+		try {
+			const res = await apiModifyUserPw({
+				phone: encryptRsa(phone.value),
+				password: encryptRsa(newPassword.value),
+				oldPassword: hasPassword.value ? encryptRsa(oldPassword.value) : ''
+			})
+			const body = res.data
+			if (!isApiSuccess(body)) {
+				uni.showToast({ title: getApiMessage(body, '修改失败'), icon: 'none' })
+				return
+			}
+			goToLoginAfterSuccess()
+		} catch (err) {
+			console.error('[handleSubmit]', err)
+			uni.showToast({
+				title: err?.message || getApiMessage(err?.data, '修改失败'),
+				icon: 'none'
+			})
+		} finally {
+			loading.value = false
+			uni.hideLoading()
+		}
 	}
 
 	const goToForgetPassword = () => {
@@ -164,6 +210,10 @@
 			padding: 30rpx;
 			border-radius: 50rpx;
 			text-align: center;
+
+			&.disabled {
+				opacity: 0.7;
+			}
 
 			text {
 				font-size: 32rpx;

@@ -3,7 +3,7 @@
 	<view class="login-page">
 		<view class="header">
 			<view class="logo">🖼️</view>
-			<view class="title">图片工具箱</view>
+			<view class="title">汇水印</view>
 			<view class="subtitle">登录后享受更多服务</view>
 		</view>
 		
@@ -20,17 +20,14 @@
 			</view>
 			
 			<view class="input-group">
-				<text class="input-icon">🔐</text>
+				<text class="input-icon">🔒</text>
 				<input 
 					class="input-field" 
-					type="number" 
-					placeholder="请输入验证码"
-					v-model="code"
-					maxlength="6"
+					type="password" 
+					placeholder="请输入密码"
+					v-model="password"
+					maxlength="20"
 				/>
-				<view class="send-code" :class="{ disabled: countdown > 0 }" @click="sendCode">
-					<text>{{ countdown > 0 ? countdown + 's' : '获取验证码' }}</text>
-				</view>
 			</view>
 			
 			<view class="extra-actions">
@@ -38,8 +35,8 @@
 				<text class="link-text" @click="goToForgetPassword">忘记密码？</text>
 			</view>
 			
-			<view class="login-button" @click="handleLogin">
-				<text>登录</text>
+			<view class="login-button" :class="{ disabled: loading }" @click="handleLogin">
+				<text>{{ loading ? '登录中...' : '登录' }}</text>
 			</view>
 			
 			<view class="divider">
@@ -59,54 +56,73 @@
 
 <script setup>
 	import { ref } from 'vue'
+	import { apiLogin } from '@/api/api.js'
+	import { isLoginSuccess } from '@/utils/user/authHelper.js'
+	import { clearAuthSession, getApiMessage, persistAuthSession, refreshUserProfile } from '@/utils/user/session.js'
+	import { isNoTokenError } from '@/utils/request.js'
+	import { buildLoginPayload } from '@/utils/user/rsaEncrypt.js'
 
 	const phone = ref('')
-	const code = ref('')
-	const countdown = ref(0)
+	const password = ref('')
+	const loading = ref(false)
 
-	const sendCode = () => {
-		if (countdown.value > 0) return
-		if (!phone.value || phone.value.length !== 11) {
+	const isValidPhone = () => /^1\d{10}$/.test(phone.value)
+
+	const handleLogin = async () => {
+		if (loading.value) return
+		if (!isValidPhone()) {
 			uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
 			return
 		}
-		countdown.value = 60
-		const timer = setInterval(() => {
-			countdown.value--
-			if (countdown.value <= 0) {
-				clearInterval(timer)
-			}
-		}, 1000)
-		uni.showToast({ title: '验证码已发送', icon: 'none' })
-	}
+		if (!password.value) {
+			uni.showToast({ title: '请输入密码', icon: 'none' })
+			return
+		}
 
-	const handleLogin = () => {
-		if (!phone.value) {
-			uni.showToast({ title: '请输入手机号', icon: 'none' })
-			return
+		loading.value = true
+		uni.showLoading({ title: '登录中...', mask: true })
+		try {
+			// 避免请求头携带过期 token，导致后端返回「请先登录」
+			clearAuthSession()
+			const res = await apiLogin(buildLoginPayload(phone.value, password.value))
+			const body = res.data
+			if (!isLoginSuccess(body)) {
+				let failMsg = getApiMessage(body, '登录失败')
+				if (/请先登录/i.test(failMsg)) {
+					failMsg = '账号或密码错误，请重试'
+				}
+				uni.showToast({ title: failMsg, icon: 'none' })
+				return
+			}
+
+			const { token, userId } = persistAuthSession(body)
+			if (!token) {
+				uni.showToast({ title: '登录成功但未获取到 token', icon: 'none' })
+				return
+			}
+			if (userId) {
+				await refreshUserProfile(userId)
+			}
+
+			uni.showToast({ title: '登录成功', icon: 'success' })
+			setTimeout(() => {
+				uni.reLaunch({
+					url: '/pages/index/index'
+				})
+			}, 1500)
+		} catch (err) {
+			console.error('[handleLogin]', err)
+			let msg = err?.message || getApiMessage(err?.data, '登录失败，请稍后重试')
+			if (isNoTokenError(err)) {
+				msg = '登录请求被拦截，请重新编译后再试'
+			} else if (/请先登录/i.test(msg)) {
+				msg = getApiMessage(err?.data, '账号或密码错误，请重试')
+			}
+			uni.showToast({ title: msg, icon: 'none' })
+		} finally {
+			loading.value = false
+			uni.hideLoading()
 		}
-		if (!code.value) {
-			uni.showToast({ title: '请输入验证码', icon: 'none' })
-			return
-		}
-		// 模拟登录，保存token
-		uni.setStorageSync('token', 'mock_token_' + Date.now())
-		uni.setStorageSync('userInfo', {
-			id: '10001',
-			phone: phone.value,
-			nickname: '图片工具箱用户',
-			avatar: '/static/logo.png',
-			level: '专业版',
-			expireDate: '2025-12-31',
-			useCount: 12,
-			favorites: 5,
-			points: 0,
-			hasPassword: false
-		})
-		uni.showToast({ title: '登录成功', icon: 'success' })
-		setTimeout(() => {
-			uni.navigateBack()
-		}, 1500)
 	}
 
 	const goToRegister = () => {
@@ -206,6 +222,10 @@
 			text-align: center;
 			margin-bottom: 60rpx;
 
+			&.disabled {
+				opacity: 0.7;
+			}
+
 			text {
 				font-size: 32rpx;
 				font-weight: bold;
@@ -253,18 +273,6 @@
 					font-size: 26rpx;
 					color: #ffffff;
 				}
-			}
-		}
-		.send-code {
-			padding: 15rpx 25rpx;
-			background: rgba(79, 172, 254, 0.2);
-			border-radius: 30rpx;
-			font-size: 24rpx;
-			color: #4facfe;
-
-			&.disabled {
-				color: rgba(255, 255, 255, 0.4);
-				background: rgba(255, 255, 255, 0.05);
 			}
 		}
 	}

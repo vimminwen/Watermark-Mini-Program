@@ -2,7 +2,6 @@
 	<dark-page-meta />
 	<view class="cancel-page">
 		<view class="header">
-			<view class="title">会员退订</view>
 			<view class="subtitle">我们很遗憾您要离开</view>
 		</view>
 		

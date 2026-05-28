@@ -4,18 +4,18 @@
 		<view class="about-content">
 			<view class="logo-section">
 				<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-				<text class="app-name">图片工具箱</text>
+				<text class="app-name">汇水印</text>
 				<text class="app-version">v1.0.0</text>
 			</view>
 			
 			<view class="description-box boxBg">
 				<text class="description-title">关于我们</text>
 				<text class="description-text">
-					图片工具箱是一款功能强大的图片处理工具集合，致力于为用户提供便捷、高效的图片编辑体验。
+					汇水印是一款功能强大的图片处理工具集合，致力于为用户提供便捷、高效的图片编辑体验。
 
 我们提供多种图片处理功能，包括格式转换、尺寸调整、去背景、滤镜效果等，满足您在工作和生活中的各种图片处理需求。
 
-感谢您使用图片工具箱！
+感谢您使用汇水印！
 				</text>
 			</view>
 			

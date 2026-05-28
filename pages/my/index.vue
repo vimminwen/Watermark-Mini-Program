@@ -3,10 +3,14 @@
 	<view class="my-page">
 		<view class="user-section" @click="goToUserCenter">
 			<view class="user-info">
-				<image class="avatar" src="/static/logo.png" mode="aspectFit"></image>
+				<image
+					class="avatar"
+					:src="displayAvatar"
+					mode="aspectFit"
+				></image>
 				<view class="user-text">
-					<text class="username">图片工具箱用户</text>
-					<text class="user-level">专业版</text>
+					<text class="username">{{ isLoggedIn ? userProfile.nickname : '点击登录' }}</text>
+					<text v-if="showUserLevel" class="user-level">{{ userProfile.level }}</text>
 				</view>
 			</view>
 		</view>
@@ -28,9 +32,6 @@
 							<text class="progress-text">已使用 65%</text>
 						</view>
 					</view>
-				</view>
-				<view class="member-arrow">
-					<text class="arrow-icon">›</text>
 				</view>
 			</view>
 			
@@ -64,12 +65,6 @@
 					</view>
 					<text class="action-text">会员退订</text>
 				</view>
-				<view class="action-card" @click="goToHistory">
-					<view class="action-icon-wrap action-history">
-						<text class="action-icon">📝</text>
-					</view>
-					<text class="action-text">使用记录</text>
-				</view>
 				<view class="action-card" @click="goToOrders">
 					<view class="action-icon-wrap action-orders">
 						<text class="action-icon">🧾</text>
@@ -97,21 +92,51 @@
 						<text class="menu-icon">{{ item.icon }}</text>
 						<text class="menu-text">{{ item.title }}</text>
 					</view>
-					<text class="arrow">></text>
+					<text class="iconfont icon-xiangyou"></text>
 				</view>
 			</view>
 		</view>
 		
 		<view class="version-info">
-			<text class="version-text">图片工具箱 v1.0.0</text>
+			<text class="version-text">汇水印 v1.0.0</text>
 		</view>
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
-	import { computed } from 'vue'
+	import { computed, ref } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
 	import myMenu from '@/api/data/myMenu.json'
+	import { apiGetUserInfo } from '@/api/api.js'
+	import { hasValidToken } from '@/utils/request.js'
+
+	const defaultProfile = {
+		avatar: '/static/logo.png',
+		nickname: '汇水印用户',
+		level: '普通用户'
+	}
+
+	const LOGO = '/static/logo.png'
+
+	const resolveAvatar = (avatar) => {
+		const value = typeof avatar === 'string' ? avatar.trim() : ''
+		return value || LOGO
+	}
+
+	const isLoggedIn = ref(false)
+	const userProfile = ref({ ...defaultProfile })
+
+	const displayAvatar = computed(() => {
+		if (!isLoggedIn.value) return LOGO
+		return resolveAvatar(userProfile.value.avatar)
+	})
+
+	const showUserLevel = computed(() => {
+		if (!isLoggedIn.value) return false
+		const level = userProfile.value.level
+		return !!level && level !== '普通用户'
+	})
 
 	const menuCategories = computed(() => {
 		return myMenu
@@ -123,6 +148,72 @@
 					.filter(child => child.show === '1')
 					.sort((a, b) => parseInt(a.sort) - parseInt(b.sort))
 			}))
+	})
+
+	const pickUserFromBody = (body) => {
+		if (!body || typeof body !== 'object') return null
+		const data = body.data
+		if (data && typeof data === 'object' && !Array.isArray(data)) {
+			if (data.id != null || data.userId != null || data.phone != null || data.nickname != null) {
+				return data
+			}
+		}
+		if (body.id != null || body.userId != null || body.phone != null || body.nickname != null) {
+			return body
+		}
+		return null
+	}
+
+	const applyUserProfile = (user) => {
+		userProfile.value = {
+			avatar: resolveAvatar(user.image ?? user.avatar),
+			nickname: user.nickname || '汇水印用户',
+			level: user.level ?? user.vipType ?? user.type ?? '普通用户'
+		}
+	}
+
+	const loadUserProfile = async () => {
+		const userId = uni.getStorageSync('userIdStorage')
+		if (!hasValidToken() || !userId) {
+			isLoggedIn.value = false
+			userProfile.value = { ...defaultProfile }
+			return
+		}
+
+		isLoggedIn.value = true
+
+		const stored = uni.getStorageSync('userInfo')
+		if (stored && typeof stored === 'object') {
+			userProfile.value = {
+				avatar: resolveAvatar(stored.avatar),
+				nickname: stored.nickname || '汇水印用户',
+				level: stored.level || '普通用户'
+			}
+		}
+
+		try {
+			const res = await apiGetUserInfo(userId)
+			const user = pickUserFromBody(res?.data)
+			if (!user) return
+
+			applyUserProfile(user)
+			const prev = uni.getStorageSync('userInfo') || {}
+			uni.setStorageSync('userInfo', {
+				...prev,
+				id: String(user.id ?? user.userId ?? userId),
+				phone: user.phone ?? prev.phone ?? '',
+				nickname: userProfile.value.nickname,
+				avatar: userProfile.value.avatar,
+				level: userProfile.value.level
+			})
+			uni.setStorageSync('userInfoStorage', user)
+		} catch (err) {
+			console.warn('[loadUserProfile]', err)
+		}
+	}
+
+	onShow(() => {
+		loadUserProfile()
 	})
 
 	const handleMenuClick = (item) => {
@@ -149,12 +240,6 @@
 		})
 	}
 
-	const goToHistory = () => {
-		uni.navigateTo({
-			url: '/pages/member/history'
-		})
-	}
-
 	const goToOrders = () => {
 		uni.navigateTo({
 			url: '/pages/member/orders'
@@ -162,16 +247,15 @@
 	}
 
 	const goToUserCenter = () => {
-		const token = uni.getStorageSync('token')
-		if (token) {
+		if (isLoggedIn.value) {
 			uni.navigateTo({
 				url: '/pages/user/userCenter'
 			})
-		} else {
-			uni.navigateTo({
-				url: '/pages/user/login'
-			})
+			return
 		}
+		uni.navigateTo({
+			url: '/pages/user/login'
+		})
 	}
 </script>
 
@@ -319,7 +403,7 @@
 				background: rgba(255, 255, 255, 0.1);
 				border-radius: 50%;
 				
-				.arrow-icon {
+				.icon-xiangyou {
 					font-size: 32rpx;
 					color: rgba(255, 255, 255, 0.6);
 				}
@@ -359,7 +443,7 @@
 		
 		.member-actions {
 			display: grid;
-			grid-template-columns: repeat(4, 1fr);
+			grid-template-columns: repeat(3, 1fr);
 			gap: 16rpx;
 		}
 		
@@ -392,10 +476,6 @@
 				
 				&.action-cancel {
 					background: linear-gradient(135deg, rgba(255, 100, 100, 0.3), rgba(255, 50, 50, 0.3));
-				}
-				
-				&.action-history {
-					background: linear-gradient(135deg, rgba(150, 200, 100, 0.3), rgba(100, 180, 80, 0.3));
 				}
 				
 				&.action-orders {
@@ -478,7 +558,7 @@
 				}
 			}
 			
-			.arrow {
+			.icon-xiangyou {
 				font-size: 28rpx;
 				color: rgba(255, 255, 255, 0.5);
 			}

@@ -8,3 +8,6 @@ node_modules/
 .DS_Store
 .hbuilderx/
 *.log
+
+# 本地 OSS 密钥（使用 aliyun.config.example.js 复制为 aliyun.config.js）
+utils/image/aliyun.config.js
