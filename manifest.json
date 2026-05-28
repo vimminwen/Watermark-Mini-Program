@@ -1,5 +1,5 @@
 {
-    "name" : "汇水印",
+    "name" : "云途汇水印",
     "appid" : "",
     "description" : "",
     "versionName" : "1.0.0",
@@ -10,16 +10,16 @@
         "usingComponents" : true,
         "nvueStyleCompiler" : "uni-app",
         "compilerVersion" : 3,
-        "background": "#050d40",
-        "statusbar": {
-            "immersed": "supportedDevice",
-            "style": "light",
-            "background": "#050d40"
+        "background" : "#050d40",
+        "statusbar" : {
+            "immersed" : "supportedDevice",
+            "style" : "light",
+            "background" : "#050d40"
         },
-        "safearea": {
-            "background": "#233968",
-            "bottom": {
-                "offset": "auto"
+        "safearea" : {
+            "background" : "#233968",
+            "bottom" : {
+                "offset" : "auto"
             }
         },
         "splashscreen" : {
@@ -62,7 +62,7 @@
     "quickapp" : {},
     /* 小程序特有相关 */
     "mp-weixin" : {
-        "appid" : "wxd4f1f872c69892b2",
+        "appid" : "wx97e66d5fd8999a93",
         "setting" : {
             "urlCheck" : false
         },

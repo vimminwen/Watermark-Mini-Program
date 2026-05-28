@@ -28,7 +28,7 @@ const put = (url, data) => request({
 
 // 获取openId
 export const apiGetOpenId = code => {
-	const url = `/wx/openId/${code}`;
+	const url = `/user/openId/${code}`;
 	return get(url);
 };
 
@@ -37,7 +37,7 @@ export const apiDecryptPhone = data => post('/wx/decryptPhone', data);
 
 // 手机号快捷登录（未注册等由 wechatAuth 内自动注册，不弹全局 toast）
 export const apiPhoneLogin = data => request({
-	url: '/uaa/openId',
+	url: '/user/login/openId',
 	data,
 	method: 'POST',
 	silentErrorToast: true,
@@ -111,8 +111,6 @@ export const apiImageUpscale = data => request({
 	silentErrorToast: true
 });
 
-// /front/ai/imageTransformationText
-
 // 跨次元相机（风格转换，返回 aiLogId）
 export const apiCrossDimensionCamera = (data) =>
 	request({
@@ -166,6 +164,26 @@ export const apiSmartErase = (data) =>
 export const apiImageLosslessZoomSubmit = (data) =>
 	request({
 		url: '/front/ai/imageLosslessZoomSubmit',
+		data,
+		method: 'POST',
+		silentErrorToast: true,
+		preserveBigInt: true
+	});
+
+// 图片提取文字（可能直接返回文本，或返回 aiLogId 需轮询）
+export const apiImageTextExtraction = (data) =>
+	request({
+		url: '/front/ai/imageTransformationText',
+		data,
+		method: 'POST',
+		silentErrorToast: true,
+		preserveBigInt: true
+	});
+
+// 视频转文字（可能直接返回文本，或返回 aiLogId 需轮询）
+export const apiVideoTransformationTextForUrl = (data) =>
+	request({
+		url: '/front/ai/videoTransformationTextForUrl',
 		data,
 		method: 'POST',
 		silentErrorToast: true,

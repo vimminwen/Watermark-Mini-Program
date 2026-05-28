@@ -7,6 +7,7 @@
 					class="avatar"
 					:src="displayAvatar"
 					mode="aspectFit"
+					@error="onAvatarError"
 				></image>
 				<view class="user-text">
 					<text class="username">{{ isLoggedIn ? userProfile.nickname : '点击登录' }}</text>
@@ -98,7 +99,7 @@
 		</view>
 		
 		<view class="version-info">
-			<text class="version-text">汇水印 v1.0.0</text>
+			<text class="version-text">云途汇水印 v1.0.0</text>
 		</view>
 	</view>
 	<safe-area-bottom />
@@ -113,7 +114,7 @@
 
 	const defaultProfile = {
 		avatar: '/static/logo.png',
-		nickname: '汇水印用户',
+		nickname: '云途汇水印用户',
 		level: '普通用户'
 	}
 
@@ -121,16 +122,24 @@
 
 	const resolveAvatar = (avatar) => {
 		const value = typeof avatar === 'string' ? avatar.trim() : ''
-		return value || LOGO
+		if (!value || value === 'null' || value === 'undefined') return LOGO
+		if (/^https?:\/\//i.test(value)) return value
+		if (value.startsWith('/static/')) return value
+		return LOGO
 	}
 
 	const isLoggedIn = ref(false)
+	const avatarErrored = ref(false)
 	const userProfile = ref({ ...defaultProfile })
 
 	const displayAvatar = computed(() => {
-		if (!isLoggedIn.value) return LOGO
+		if (avatarErrored.value || !isLoggedIn.value) return LOGO
 		return resolveAvatar(userProfile.value.avatar)
 	})
+
+	const onAvatarError = () => {
+		avatarErrored.value = true
+	}
 
 	const showUserLevel = computed(() => {
 		if (!isLoggedIn.value) return false
@@ -167,12 +176,13 @@
 	const applyUserProfile = (user) => {
 		userProfile.value = {
 			avatar: resolveAvatar(user.image ?? user.avatar),
-			nickname: user.nickname || '汇水印用户',
+			nickname: user.nickname || '云途汇水印用户',
 			level: user.level ?? user.vipType ?? user.type ?? '普通用户'
 		}
 	}
 
 	const loadUserProfile = async () => {
+		avatarErrored.value = false
 		const userId = uni.getStorageSync('userIdStorage')
 		if (!hasValidToken() || !userId) {
 			isLoggedIn.value = false
@@ -186,7 +196,7 @@
 		if (stored && typeof stored === 'object') {
 			userProfile.value = {
 				avatar: resolveAvatar(stored.avatar),
-				nickname: stored.nickname || '汇水印用户',
+				nickname: stored.nickname || '云途汇水印用户',
 				level: stored.level || '普通用户'
 			}
 		}

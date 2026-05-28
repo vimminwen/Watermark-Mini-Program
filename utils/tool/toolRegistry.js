@@ -16,12 +16,13 @@ export const TOOL_ROUTE_MAP = {
 	'50': { mode: TOOL_MODE.BACKEND, path: '/pages/tool/feature' },
 	'51': { mode: TOOL_MODE.BACKEND, path: '/pages/tool/feature' },
 	'52': { mode: TOOL_MODE.FULL, path: '/pages/tool/videoRemove' },
-	'54': { mode: TOOL_MODE.BACKEND, path: '/pages/tool/feature' },
+	'54': { mode: TOOL_MODE.FULL, path: '/pages/tool/videoTextExtract' },
+	'62': { mode: TOOL_MODE.FULL, path: '/pages/tool/audioTextExtract' },
 	'55': { mode: TOOL_MODE.FULL, path: '/pages/tool/tool' },
 	'56': { mode: TOOL_MODE.FULL, path: '/pages/tool/styleTransfer?styleKey=cyber' },
 	'57': { mode: TOOL_MODE.FULL, path: '/pages/tool/styleTransfer?styleKey=guofeng' },
 	'58': { mode: TOOL_MODE.FULL, path: '/pages/tool/imageCompress' },
-	'59': { mode: TOOL_MODE.BACKEND, path: '/pages/tool/feature' },
+	'59': { mode: TOOL_MODE.FULL, path: '/pages/tool/imageTextExtract' },
 	'60': { mode: TOOL_MODE.FULL, path: '/pages/tool/imageCrop' },
 	'61': { mode: TOOL_MODE.FULL, path: '/pages/filter/filter' }
 };

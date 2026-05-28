@@ -68,7 +68,7 @@
 
 		"url": "/pages/tool/cutout",
 
-		"location": "1",
+		"location": "2",
 
 		"sort": "10",
 
@@ -140,15 +140,41 @@
 
 		"title": "视频转文字",
 
-		"content": "自动提取视频中的音频并转写为文字，支持多语言识别，生成字幕文件或纯文本。",
+		"content": "上传视频（最长45秒），自动转写为文字，支持编辑与复制。",
 
 		"reader": "0",
 
-		"url": "/pages/tool/feature?id=54",
+		"url": "/pages/tool/videoTextExtract",
 
 		"location": "1",
 
 		"sort": "16",
+
+		"my": "1",
+
+		"del": "0"
+
+	},
+
+	{
+
+		"id": "62",
+
+		"cid": "104",
+
+		"img": "/static/images/box.png",
+
+		"title": "音频转文字",
+
+		"content": "上传音频文件（最长45秒），自动转写为文字，支持 mp3/m4a/wav 等格式。",
+
+		"reader": "0",
+
+		"url": "/pages/tool/audioTextExtract",
+
+		"location": "1",
+
+		"sort": "17",
 
 		"my": "1",
 
@@ -274,7 +300,7 @@
 
 		"reader": "0",
 
-		"url": "/pages/tool/feature?id=59",
+		"url": "/pages/tool/imageTextExtract",
 
 		"location": "2",
 

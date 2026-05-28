@@ -3,7 +3,7 @@
 	<view class="login-page">
 		<view class="header">
 			<view class="logo">🖼️</view>
-			<view class="title">汇水印</view>
+			<view class="title">云途汇水印</view>
 			<view class="subtitle">登录后享受更多服务</view>
 		</view>
 		
@@ -35,9 +35,21 @@
 				<text class="link-text" @click="goToForgetPassword">忘记密码？</text>
 			</view>
 			
-			<view class="login-button" :class="{ disabled: loading }" @click="handleLogin">
+			<view class="login-button" :class="{ disabled: loading || quickLoginLoading }" @click="handleLogin">
 				<text>{{ loading ? '登录中...' : '登录' }}</text>
 			</view>
+
+			<view class="divider">
+				<view class="divider-line"></view>
+				<text class="divider-text">其他登录方式</text>
+				<view class="divider-line"></view>
+			</view>
+			<phone-quick-login-btn
+				custom-class="login-quick-btn"
+				:disabled="loading"
+				show-dev-tip
+				@loading="onQuickLoginLoading"
+			/>
 			
 			<view class="divider">
 				<view class="divider-line"></view>
@@ -65,11 +77,33 @@
 	const phone = ref('')
 	const password = ref('')
 	const loading = ref(false)
+	const quickLoginLoading = ref(false)
+
+	const onQuickLoginLoading = (val) => {
+		quickLoginLoading.value = val
+	}
 
 	const isValidPhone = () => /^1\d{10}$/.test(phone.value)
 
+	const finishLoginSuccess = async (body) => {
+		const { token, userId } = persistAuthSession(body)
+		if (!token) {
+			uni.showToast({ title: '登录成功但未获取到 token', icon: 'none' })
+			return
+		}
+		if (userId) {
+			await refreshUserProfile(userId)
+		}
+		uni.showToast({ title: '登录成功', icon: 'success' })
+		setTimeout(() => {
+			uni.reLaunch({
+				url: '/pages/index/index'
+			})
+		}, 1500)
+	}
+
 	const handleLogin = async () => {
-		if (loading.value) return
+		if (loading.value || quickLoginLoading.value) return
 		if (!isValidPhone()) {
 			uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
 			return
@@ -95,21 +129,7 @@
 				return
 			}
 
-			const { token, userId } = persistAuthSession(body)
-			if (!token) {
-				uni.showToast({ title: '登录成功但未获取到 token', icon: 'none' })
-				return
-			}
-			if (userId) {
-				await refreshUserProfile(userId)
-			}
-
-			uni.showToast({ title: '登录成功', icon: 'success' })
-			setTimeout(() => {
-				uni.reLaunch({
-					url: '/pages/index/index'
-				})
-			}, 1500)
+			await finishLoginSuccess(body)
 		} catch (err) {
 			console.error('[handleLogin]', err)
 			let msg = err?.message || getApiMessage(err?.data, '登录失败，请稍后重试')
@@ -220,7 +240,7 @@
 			padding: 30rpx;
 			border-radius: 50rpx;
 			text-align: center;
-			margin-bottom: 60rpx;
+			margin-bottom: 40rpx;
 
 			&.disabled {
 				opacity: 0.7;
@@ -231,6 +251,10 @@
 				font-weight: bold;
 				color: #ffffff;
 			}
+		}
+
+		:deep(.login-quick-btn) {
+			margin-bottom: 40rpx;
 		}
 
 		.divider {

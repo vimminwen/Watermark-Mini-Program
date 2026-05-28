@@ -1,5 +1,6 @@
 import { apiGetUserInfo } from '@/api/api.js';
 import { extractLoginSession } from '@/utils/user/authHelper.js';
+import { clearAuthStorage } from '@/utils/user/authStorage.js';
 import { resolveHasPassword } from '@/utils/user/passwordStatus.js';
 
 /** 从接口 body 取错误文案 */
@@ -28,7 +29,7 @@ export const persistAuthSession = (body) => {
 	const userInfo = {
 		id: userId || '',
 		phone: data.phone ?? '',
-		nickname: data.nickname ?? '汇水印用户',
+		nickname: data.nickname ?? '云途汇水印用户',
 		avatar: data.image ?? data.avatar ?? '/static/logo.png',
 		level: data.level ?? '普通用户',
 		expireDate: data.expireDate ?? '',
@@ -46,23 +47,7 @@ export const persistAuthSession = (body) => {
 
 /** 清除本地登录态（退出登录 / 注销账号后调用） */
 export const clearAuthSession = () => {
-	const keys = [
-		'token',
-		'userInfo',
-		'userInfoStorage',
-		'userIdStorage',
-		'userVipInfoStorage',
-		'userPhoneNumberStorage',
-		'openIdStorage',
-		'sessionKeyStorage'
-	];
-	keys.forEach((key) => {
-		try {
-			uni.removeStorageSync(key);
-		} catch (e) {
-			console.warn('[clearAuthSession]', key, e);
-		}
-	});
+	clearAuthStorage();
 };
 
 /** 登录后拉取最新用户信息并合并到本地 */

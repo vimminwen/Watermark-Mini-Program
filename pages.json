@@ -172,6 +172,27 @@
 			}
 		},
 		{
+			"path": "pages/tool/imageTextExtract",
+			"style": {
+				"navigationBarTitleText": "图片提取文字",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/videoTextExtract",
+			"style": {
+				"navigationBarTitleText": "视频转文字",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
+			"path": "pages/tool/audioTextExtract",
+			"style": {
+				"navigationBarTitleText": "音频转文字",
+				"navigationBarBackgroundColor": "#050d40"
+			}
+		},
+		{
 			"path": "pages/tool/imageCrop",
 			"style": {
 				"navigationBarTitleText": "图片剪切",
@@ -202,7 +223,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "汇水印",
+		"navigationBarTitleText": "云途汇水印",
 		"navigationBarBackgroundColor": "#050d40",
 		"backgroundColor": "#050d40",
 		"backgroundColorContent": "#050d40",

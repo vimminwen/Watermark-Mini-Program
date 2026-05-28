@@ -10,8 +10,12 @@
 		<view class="header">
 			<view class="avatar-section">
 				<image class="avatar" :src="userInfo.avatar || '/static/logo.png'" mode="aspectFit"></image>
-				<view class="upload-btn" @click="handleChooseAvatar">
-					<text>更换头像</text>
+				<view
+					class="upload-btn"
+					:class="{ disabled: avatarUploading }"
+					@click="handleChooseAvatar"
+				>
+					<text>{{ avatarUploading ? '上传中...' : '更换头像' }}</text>
 				</view>
 			</view>
 		</view>
@@ -74,9 +78,12 @@
 	import { clearAuthSession, getApiMessage } from '@/utils/user/session.js'
 	import { resolveHasPassword } from '@/utils/user/passwordStatus.js'
 	import { hasValidToken, isSilentErrorMessage } from '@/utils/request.js'
+	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
+	import { pickLocalImage, handlePickLocalImageError } from '@/utils/image/pickLocalImage.js'
 
 	const loading = ref(false)
 	const saving = ref(false)
+	const avatarUploading = ref(false)
 	const isLoggedIn = ref(true)
 	const serverImage = ref('')
 
@@ -128,7 +135,7 @@
 		return {
 			id: String(user.id ?? user.userId ?? prev.id ?? ''),
 			phone: user.phone ?? prev.phone ?? '',
-			nickname: user.nickname ?? prev.nickname ?? '汇水印用户',
+			nickname: user.nickname ?? prev.nickname ?? '云途汇水印用户',
 			email: user.email ?? prev.email ?? '',
 			avatar: image,
 			level: user.level ?? user.vipType ?? user.type ?? prev.level ?? '普通用户',
@@ -228,8 +235,7 @@
 			return
 		}
 
-		const avatar = userInfo.value.avatar || ''
-		const image = /^https?:\/\//.test(avatar) ? avatar : (serverImage.value || '')
+		const image = resolveImageForSave()
 
 		saving.value = true
 		uni.showLoading({ title: '保存中...', mask: true })
@@ -260,18 +266,64 @@
 		}
 	}
 
-	const handleChooseAvatar = () => {
-		uni.chooseImage({
-			count: 1,
-			sizeType: ['compressed'],
-			sourceType: ['album', 'camera'],
-			success: (res) => {
-				const tempPath = res.tempFilePaths?.[0]
-				if (tempPath) {
-					userInfo.value.avatar = tempPath
-				}
-			}
+	const resolveImageForSave = () => {
+		const avatar = String(userInfo.value.avatar || '').trim()
+		if (/^https?:\/\//i.test(avatar)) return avatar
+		return String(serverImage.value || '').trim()
+	}
+
+	const saveAvatarToServer = async (imageUrl) => {
+		const userId = uni.getStorageSync('userIdStorage')
+		if (!userId || !imageUrl) return false
+
+		const res = await apiModifyUserInfo({
+			id: userId,
+			nickname: userInfo.value.nickname?.trim() || '云途汇水印用户',
+			email: userInfo.value.email?.trim() || '',
+			image: imageUrl
 		})
+		const body = res?.data
+		if (!isApiSuccess(body)) {
+			uni.showToast({ title: getApiMessage(body, '头像保存失败'), icon: 'none' })
+			return false
+		}
+		await loadUserInfo()
+		return true
+	}
+
+	const handleChooseAvatar = async () => {
+		if (avatarUploading.value || saving.value) return
+
+		try {
+			const picked = await pickLocalImage({ maxSize: 5 * 1024 * 1024 })
+			avatarUploading.value = true
+			uni.showLoading({ title: '上传头像中...', mask: true })
+
+			const ossUrl = await uploadImageToOss(picked.path)
+			userInfo.value.avatar = ossUrl
+			serverImage.value = ossUrl
+
+			uni.showLoading({ title: '保存头像中...', mask: true })
+			const ok = await saveAvatarToServer(ossUrl)
+			if (ok) {
+				uni.showToast({ title: '头像已更新', icon: 'success' })
+			}
+		} catch (err) {
+			console.error('[handleChooseAvatar]', err)
+			const msg = String(err?.message || err?.errMsg || '')
+			if (/cancel|取消/i.test(msg)) return
+			if (!avatarUploading.value) {
+				handlePickLocalImageError(err)
+				return
+			}
+			uni.showToast({
+				title: msg || '头像上传失败，请重试',
+				icon: 'none'
+			})
+		} finally {
+			avatarUploading.value = false
+			uni.hideLoading()
+		}
 	}
 
 	const goToModifyPassword = () => {
@@ -331,6 +383,11 @@
 				text {
 					font-size: 26rpx;
 					color: #4facfe;
+				}
+
+				&.disabled {
+					opacity: 0.65;
+					pointer-events: none;
 				}
 			}
 		}

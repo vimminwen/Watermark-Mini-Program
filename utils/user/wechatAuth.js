@@ -95,24 +95,22 @@ const parsePhoneNumber = (phoneRes) => {
 	return phoneNumber;
 };
 
-/**
- * 微信手机号快捷登录（未注册时自动注册并再次登录）
- */
-const phoneQuickLogin = async (encryptedData, iv) => {
-	console.log("开始手机号快捷登录...");
+/** 从 getPhoneNumber 回调 detail 解析手机号（兼容 encryptedData 与新版 code） */
+const resolvePhoneNumberFromDetail = async (detail) => {
+	if (detail?.encryptedData && detail?.iv) {
+		const phoneRes = await decryptPhone(detail.encryptedData, detail.iv);
+		return parsePhoneNumber(phoneRes);
+	}
 
-	const {
-		openId
-	} = await getOpenId(true);
-	console.log("获取到最新 openId:", openId);
+	if (detail?.code) {
+		const phoneRes = await apiDecryptPhone({ code: detail.code });
+		return parsePhoneNumber(phoneRes);
+	}
 
-	const phoneRes = await decryptPhone(encryptedData, iv);
-	const phoneNumber = parsePhoneNumber(phoneRes);
+	throw new Error('获取手机号失败，请检查微信授权或开发者工具模拟配置');
+};
 
-	console.log('成功获取手机号:', phoneNumber);
-	uni.setStorageSync("userPhoneNumberStorage", phoneNumber);
-
-	// 先尝试快捷登录
+const loginWithOpenIdAndPhone = async (openId, phoneNumber) => {
 	try {
 		const loginRes = await apiPhoneLogin({
 			openId,
@@ -126,7 +124,6 @@ const phoneQuickLogin = async (encryptedData, iv) => {
 			return loginData;
 		}
 
-		// 业务失败：未注册则自动注册
 		if (shouldAutoRegister(loginData)) {
 			console.log('用户未注册，开始自动注册并登录:', loginData.message);
 			return autoRegisterAndLogin(phoneNumber, openId);
@@ -138,7 +135,6 @@ const phoneQuickLogin = async (encryptedData, iv) => {
 			data: loginData
 		};
 	} catch (loginError) {
-		// HTTP 500「请注册账号」或业务层未注册：自动注册后再登录
 		if (shouldAutoRegister(loginError.data, loginError)) {
 			console.log('快捷登录未注册，自动注册并登录:', loginError.message || loginError.data?.message);
 			return autoRegisterAndLogin(phoneNumber, openId);
@@ -149,10 +145,33 @@ const phoneQuickLogin = async (encryptedData, iv) => {
 	}
 };
 
+/**
+ * 微信手机号快捷登录（未注册时自动注册并再次登录）
+ */
+const phoneQuickLogin = async (encryptedData, iv) =>
+	phoneQuickLoginFromDetail({ encryptedData, iv });
+
+/**
+ * 从 button getphonenumber 事件 detail 快捷登录（模拟器/真机通用）
+ */
+const phoneQuickLoginFromDetail = async (detail) => {
+	console.log('开始手机号快捷登录...', detail);
+
+	const { openId } = await getOpenId(true);
+	console.log('获取到最新 openId:', openId);
+
+	const phoneNumber = await resolvePhoneNumberFromDetail(detail);
+	console.log('成功获取手机号:', phoneNumber);
+	uni.setStorageSync('userPhoneNumberStorage', phoneNumber);
+
+	return loginWithOpenIdAndPhone(openId, phoneNumber);
+};
+
 export {
 	getOpenId,
 	decryptPhone,
-	phoneQuickLogin
+	phoneQuickLogin,
+	phoneQuickLoginFromDetail
 };
 
 export default getOpenId;

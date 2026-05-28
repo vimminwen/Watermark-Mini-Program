@@ -3,7 +3,7 @@
 	<view class="register-page">
 		<view class="header">
 			<view class="title">注册账号</view>
-			<view class="subtitle">加入汇水印</view>
+			<view class="subtitle">加入云途汇水印</view>
 		</view>
 		
 		<view class="register-form">

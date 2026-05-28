@@ -2,6 +2,11 @@ import {
 	baseUrl
 } from '@/utils/http.js';
 import { parseJsonPreserveLongIntegers } from '@/utils/http/jsonBigInt.js';
+import {
+	clearAuthStorage,
+	getStoredToken,
+	hasStoredToken
+} from '@/utils/user/authStorage.js';
 
 // 请求超时设置（15秒）
 const timeout = 15000;
@@ -30,14 +35,26 @@ const showErrorToast = (title, options = {}) => {
 	})
 }
 
-function getStoredToken() {
-	const token = uni.getStorageSync('token');
-	if (token === undefined || token === null) return '';
-	return String(token).trim();
+export function hasValidToken() {
+	return hasStoredToken();
 }
 
-export function hasValidToken() {
-	return getStoredToken().length > 0;
+/** 响应是否表示 token 已失效（Sa-Token 常返回 500 + NotLoginException） */
+export function isTokenInvalidResponse(resData, statusCode) {
+	if (!resData || typeof resData !== 'object') {
+		return statusCode === 401;
+	}
+	if (statusCode === 401) return true;
+	if (resData.code === 401 || resData.status === 401) return true;
+
+	const msg = String(resData.message || resData.msg || resData.error || '');
+	const exception = String(resData.exception || '');
+	const combined = `${msg} ${exception}`;
+
+	return /notloginexception/i.test(exception) ||
+		/token\s*无效|无效\s*token|未能读取到有效\s*token|请先登录|未登录|not\s*login|登录已过期|登录状态/i.test(
+			combined
+		);
 }
 
 /** 未登录拦截错误（不弹提示，由用户点击功能时 auth.js 引导登录） */
@@ -64,12 +81,12 @@ export function isAuthExemptRequest(url, method = 'GET') {
 	const upperMethod = String(method).toUpperCase();
 
 	// 微信 openId、手机号解密
-	if (path.startsWith('/wx/openId/')) return true;
+	if (path.startsWith('/user/openId/')) return true;
 	if (path === '/wx/decryptPhone') return true;
 
 	// 账号密码登录、手机号快捷登录
 	if (path === '/uaa' && upperMethod === 'POST') return true;
-	if (path === '/uaa/openId' && upperMethod === 'POST') return true;
+	if (path === '/user/login/openId' && upperMethod === 'POST') return true;
 
 	// 注册、账号密码登录
 	if (path === '/user' && upperMethod === 'POST') return true;
@@ -101,14 +118,15 @@ function getDefaultHeader(options = {}) {
 }
 
 /**
- * 处理401未授权（静默清缓存，不弹窗；用户点击功能时由 auth.js 引导登录）
+ * token 失效：清除登录缓存（无 refresh 接口，需用户重新登录）
+ * 注意：不会自动刷新 token
  */
-function handleUnauthorized() {
+function handleUnauthorized(reason = '未授权') {
 	try {
-		uni.clearStorageSync();
-		console.warn('[request] 401 未授权，已清除登录态');
+		clearAuthStorage();
+		console.warn('[request] 登录态已失效，已清除本地 token:', reason);
 	} catch (error) {
-		console.error('[处理401错误]', error);
+		console.error('[handleUnauthorized]', error);
 	}
 }
 
@@ -253,11 +271,14 @@ export function request(config = {}) {
 						const { statusCode } = res;
 
 						if (statusCode === 200) {
-							// 检查401
-							if (resData?.code === 401 || resData?.status === 401) {
+							if (isTokenInvalidResponse(resData, statusCode)) {
 								autoHideLoading();
-								handleUnauthorized();
-								reject(res);
+								handleUnauthorized(resData?.message || 'token 无效');
+								reject({
+									message: resData?.message || resData?.msg || '登录已过期，请重新登录',
+									type: 'TOKEN_INVALID',
+									data: resData
+								});
 								return;
 							}
 
@@ -275,6 +296,15 @@ export function request(config = {}) {
 							if (!isSuccess(resData?.code)) {
 								autoHideLoading();
 								const errorMsg = resData?.message || resData?.msg || '请求失败';
+								if (isTokenInvalidResponse(resData, statusCode)) {
+									handleUnauthorized(errorMsg);
+									reject({
+										message: errorMsg || '登录已过期，请重新登录',
+										type: 'TOKEN_INVALID',
+										data: resData
+									});
+									return;
+								}
 								if (!silentErrorToast) {
 									showErrorToast(errorMsg);
 								}
@@ -292,6 +322,16 @@ export function request(config = {}) {
 							// HTTP错误（保留响应体，供快捷登录「请注册」等场景判断）
 							autoHideLoading();
 							const resData = res.data;
+							if (isTokenInvalidResponse(resData, statusCode)) {
+								handleUnauthorized(resData?.message || resData?.error);
+								reject({
+									message: resData?.message || '登录已过期，请重新登录',
+									type: 'TOKEN_INVALID',
+									statusCode,
+									data: resData
+								});
+								return;
+							}
 							const bodyMsg = resData?.message || resData?.msg;
 							let errorMsg = bodyMsg || '请求失败';
 							switch (statusCode) {

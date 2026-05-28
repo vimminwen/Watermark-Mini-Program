@@ -84,6 +84,147 @@ export const isAiLogFailed = (body) => {
 /** 任务是否已有可展示结果 */
 export const isAiLogReady = (body) => !!resolveAiLogResultUrl(body);
 
+/** 提交接口占位 text（如 "[]"）表示尚未完成，需用 aiLogId 轮询 */
+export const isPlaceholderAiText = (value) => {
+	if (value == null) return true;
+	const trimmed = String(value).trim();
+	if (!trimmed) return true;
+	if (trimmed === '[]' || trimmed === '{}') return true;
+	if (/^(null|undefined)$/i.test(trimmed)) return true;
+	if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+		try {
+			const parsed = JSON.parse(trimmed);
+			if (Array.isArray(parsed) && parsed.length === 0) return true;
+			if (
+				parsed &&
+				typeof parsed === 'object' &&
+				!Array.isArray(parsed) &&
+				Object.keys(parsed).length === 0
+			) {
+				return true;
+			}
+		} catch (e) {
+			// ignore
+		}
+	}
+	return false;
+};
+
+/** 将 JSON 字幕/分段数组拼成纯文本 */
+export const flattenTextSegments = (payload) => {
+	if (payload == null) return '';
+	if (typeof payload === 'string') {
+		const trimmed = payload.trim();
+		if (!trimmed || isPlaceholderAiText(trimmed)) return '';
+		if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+			try {
+				return flattenTextSegments(JSON.parse(trimmed));
+			} catch (e) {
+				return trimmed;
+			}
+		}
+		return trimmed;
+	}
+	if (!Array.isArray(payload)) {
+		if (typeof payload === 'object') {
+			const one =
+				payload.text ??
+				payload.Text ??
+				payload.content ??
+				payload.sentence ??
+				payload.line ??
+				'';
+			return String(one || '').trim();
+		}
+		return '';
+	}
+	if (!payload.length) return '';
+	const lines = payload
+		.map((item) => {
+			if (typeof item === 'string') return item.trim();
+			if (item && typeof item === 'object') {
+				return String(
+					item.text ?? item.Text ?? item.content ?? item.sentence ?? item.line ?? ''
+				).trim();
+			}
+			return '';
+		})
+		.filter(Boolean);
+	return lines.join('\n');
+};
+
+const pickPlainText = (value) => {
+	if (value == null) return '';
+	if (Array.isArray(value)) {
+		return flattenTextSegments(value);
+	}
+	if (typeof value !== 'string') return '';
+	const trimmed = value.trim();
+	if (!trimmed || /^https?:\/\//i.test(trimmed)) return '';
+	if (isPlaceholderAiText(trimmed)) return '';
+	if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+		const fromJson = flattenTextSegments(trimmed);
+		if (fromJson) return fromJson;
+		return '';
+	}
+	return trimmed;
+};
+
+/** 从 ai-log 或提交响应中解析 OCR/转写文本 */
+export const resolveAiLogText = (body) => {
+	if (!body || typeof body !== 'object') return '';
+
+	const data = body.data ?? body.result ?? body;
+
+	if (Array.isArray(data)) {
+		return flattenTextSegments(data);
+	}
+
+	const direct = pickPlainText(data);
+	if (direct) return direct;
+
+	if (data && typeof data === 'object') {
+		const fields = [
+			data.text,
+			data.content,
+			data.result,
+			data.output,
+			data.ocrText,
+			data.recognizedText,
+			data.transformationText
+		];
+		for (const item of fields) {
+			const text = pickPlainText(item);
+			if (text) return text;
+		}
+
+		if (typeof data.content === 'string' && (data.content.startsWith('{') || data.content.startsWith('['))) {
+			try {
+				return resolveAiLogText({ data: JSON.parse(data.content) });
+			} catch (e) {
+				// ignore
+			}
+		}
+	}
+
+	return '';
+};
+
+/** 任务是否已有文本结果 */
+export const isAiLogTextReady = (body) => !!resolveAiLogText(body);
+
+/**
+ * 解析图文/视频转文字提交响应：有效文本直接返回，否则用 aiLogId 轮询
+ */
+export const parseTextTransformationSubmit = (body) => {
+	const aiLogId = extractAiLogId(body);
+	const text = resolveAiLogText(body);
+	if (text && !isPlaceholderAiText(text)) {
+		return { text, aiLogId: '' };
+	}
+	return { text: '', aiLogId };
+};
+
 export const getAiLogErrorMessage = (body, fallback = 'AI 处理失败') => {
 	if (!body || typeof body !== 'object') return fallback;
 	const data = body.data;
@@ -107,6 +248,7 @@ export const pollAiLogResult = async (fetchAiLog, aiLogId, options = {}) => {
 	const interval = options.interval ?? 2000;
 	const maxAttempts = options.maxAttempts ?? 60;
 	const onProgress = options.onProgress;
+	const resolveResult = options.resolve ?? resolveAiLogResultUrl;
 
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 		const res = await fetchAiLog(id);
@@ -120,9 +262,9 @@ export const pollAiLogResult = async (fetchAiLog, aiLogId, options = {}) => {
 			throw new Error(getAiLogErrorMessage(body));
 		}
 
-		const resultUrl = resolveAiLogResultUrl(body);
-		if (resultUrl) {
-			return resultUrl;
+		const result = resolveResult(body);
+		if (result) {
+			return result;
 		}
 
 		if (onProgress) {
