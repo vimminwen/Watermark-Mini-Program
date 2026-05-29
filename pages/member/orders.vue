@@ -2,19 +2,29 @@
 	<dark-page-meta />
 	<view class="orders-page">
 		<view style="height: 30rpx;"></view>
+
 		<view class="order-list">
-			<view class="order-item boxBg" v-for="(order, index) in orders" :key="index">
+			<view class="loading-state" v-if="loading">
+				<text class="loading-text">加载中…</text>
+			</view>
+
+			<view
+				class="order-item boxBg"
+				v-for="(order, index) in orders"
+				:key="order.id || index"
+				v-show="!loading"
+			>
 				<view class="order-header">
 					<text class="order-title">{{ order.title }}</text>
-					<view class="order-status" :class="'status-' + order.status">
-						{{ getStatusText(order.status) }}
+					<view class="order-status status-success">
+						{{ order.orderStatusText || '支付成功' }}
 					</view>
 				</view>
-				
+
 				<view class="order-info">
 					<view class="info-row">
 						<text class="info-label">订单编号</text>
-						<text class="info-value">{{ order.id }}</text>
+						<text class="info-value">{{ order.id || '--' }}</text>
 					</view>
 					<view class="info-row">
 						<text class="info-label">订单类型</text>
@@ -29,18 +39,12 @@
 						<text class="info-value">{{ order.time }}</text>
 					</view>
 				</view>
-				
-				<view class="order-actions">
-					<view class="action-btn" v-if="order.status === 'pending'">取消订单</view>
-					<view class="action-btn primary" v-if="order.status === 'pending'">去支付</view>
-					<view class="action-btn" v-if="order.status === 'success'">查看详情</view>
-					<view class="action-btn" v-if="order.status === 'refunded'">查看详情</view>
-				</view>
 			</view>
-			
-			<view class="empty-state" v-if="orders.length === 0">
+
+			<view class="empty-state" v-if="!loading && orders.length === 0">
 				<text class="empty-icon">📋</text>
-				<text class="empty-text">暂无订单记录</text>
+				<text class="empty-text">{{ emptyText }}</text>
+				<view class="empty-btn" v-if="!isLoggedIn" @click="goLogin">去登录</view>
 			</view>
 		</view>
 	</view>
@@ -49,67 +53,65 @@
 
 <script setup>
 	import { ref, computed } from 'vue'
+	import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
+	import { apiGetPayHistory } from '@/api/api.js'
+	import { hasValidToken } from '@/utils/request.js'
+	import { parsePayHistoryList } from '@/utils/pay/payHistory.js'
 
-	const activeTab = ref(0)
+	const loading = ref(false)
+	const isLoggedIn = ref(false)
+	const orders = ref([])
 
-	const tabs = [
-		{ name: '全部', count: 4 },
-		{ name: '待支付', count: 1 },
-		{ name: '已完成', count: 2 },
-		{ name: '已退款', count: 1 }
-	]
-
-	const allOrders = [
-		{
-			id: 'ORD20250520001',
-			title: '专业版季度会员',
-			type: '会员充值',
-			amount: '49.90',
-			time: '2025-05-20 14:30:25',
-			status: 'success'
-		},
-		{
-			id: 'ORD20250415002',
-			title: '专业版月度会员',
-			type: '会员充值',
-			amount: '19.90',
-			time: '2025-04-15 09:12:33',
-			status: 'success'
-		},
-		{
-			id: 'ORD20250524003',
-			title: '专业版年度会员',
-			type: '会员充值',
-			amount: '159.90',
-			time: '2025-05-24 16:45:10',
-			status: 'pending'
-		},
-		{
-			id: 'ORD20250310004',
-			title: '专业版月度会员',
-			type: '会员退款',
-			amount: '19.90',
-			time: '2025-03-10 11:20:15',
-			status: 'refunded'
-		}
-	]
-
-	const orders = computed(() => {
-		if (activeTab.value === 0) return allOrders
-		if (activeTab.value === 1) return allOrders.filter(o => o.status === 'pending')
-		if (activeTab.value === 2) return allOrders.filter(o => o.status === 'success')
-		if (activeTab.value === 3) return allOrders.filter(o => o.status === 'refunded')
-		return allOrders
+	const emptyText = computed(() => {
+		if (!isLoggedIn.value) return '登录后查看支付订单'
+		return '暂无支付成功记录'
 	})
 
-	const getStatusText = (status) => {
-		const map = {
-			pending: '待支付',
-			success: '已完成',
-			refunded: '已退款'
-		}
-		return map[status] || ''
+	const isPaidOrder = (order) => {
+		if (order.status === 'success') return true
+		return /支付成功|已支付|已完成/i.test(String(order.orderStatusText || ''))
 	}
+
+	const goLogin = () => {
+		uni.navigateTo({ url: '/pages/user/login' })
+	}
+
+	const loadOrders = async () => {
+		const userId = uni.getStorageSync('userIdStorage')
+		if (!hasValidToken() || !userId) {
+			isLoggedIn.value = false
+			orders.value = []
+			return
+		}
+
+		isLoggedIn.value = true
+		loading.value = true
+		try {
+			const res = await apiGetPayHistory(userId)
+			const list = parsePayHistoryList(res)
+			orders.value = list
+				.filter(isPaidOrder)
+				.sort((a, b) => String(b.time).localeCompare(String(a.time)))
+		} catch (err) {
+			console.warn('[loadOrders]', err)
+			orders.value = []
+			uni.showToast({
+				title: '订单加载失败',
+				icon: 'none'
+			})
+		} finally {
+			loading.value = false
+			uni.stopPullDownRefresh()
+		}
+	}
+
+	onShow(() => {
+		loadOrders()
+	})
+
+	onPullDownRefresh(() => {
+		loadOrders()
+	})
 </script>
 
 <style lang="scss">
@@ -118,55 +120,19 @@
 		background: linear-gradient(to bottom, #050d40, #233968);
 	}
 
-	.tabs {
-		display: flex;
-		background: rgba(0, 0, 0, 0.3);
-		padding: 10rpx;
-		margin-bottom: 30rpx;
-
-		.tab-item {
-			flex: 1;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			padding: 20rpx 10rpx;
-			border-radius: 12rpx;
-			position: relative;
-			transition: all 0.3s ease;
-
-			&.active {
-				background: rgba(79, 172, 254, 0.2);
-			}
-
-			.tab-text {
-				font-size: 28rpx;
-				color: rgba(255, 255, 255, 0.7);
-
-				&.active,
-				.tab-item.active & {
-					color: #ffffff;
-					font-weight: bold;
-				}
-			}
-
-			.tab-badge {
-				position: absolute;
-				top: 8rpx;
-				right: calc(50% - 40rpx);
-				background: #ff6b6b;
-				font-size: 18rpx;
-				color: #ffffff;
-				padding: 2rpx 10rpx;
-				border-radius: 20rpx;
-				min-width: 28rpx;
-				text-align: center;
-			}
-		}
-	}
-
 	.order-list {
 		padding: 0 30rpx;
 		padding-bottom: 100rpx;
+	}
+
+	.loading-state {
+		padding: 80rpx 0;
+		text-align: center;
+
+		.loading-text {
+			font-size: 28rpx;
+			color: rgba(255, 255, 255, 0.6);
+		}
 	}
 
 	.order-item {
@@ -182,29 +148,22 @@
 			border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
 
 			.order-title {
+				flex: 1;
 				font-size: 30rpx;
 				font-weight: bold;
 				color: #ffffff;
+				margin-right: 16rpx;
 			}
 
 			.order-status {
+				flex-shrink: 0;
 				font-size: 24rpx;
 				padding: 8rpx 20rpx;
 				border-radius: 30rpx;
 
-				&.status-pending {
-					background: rgba(255, 180, 100, 0.2);
-					color: #ffb464;
-				}
-
 				&.status-success {
 					background: rgba(100, 200, 100, 0.2);
 					color: #64c864;
-				}
-
-				&.status-refunded {
-					background: rgba(255, 255, 255, 0.15);
-					color: rgba(255, 255, 255, 0.6);
 				}
 			}
 		}
@@ -213,7 +172,6 @@
 			display: flex;
 			flex-direction: column;
 			gap: 15rpx;
-			margin-bottom: 25rpx;
 
 			.info-row {
 				display: flex;
@@ -223,36 +181,21 @@
 				.info-label {
 					font-size: 26rpx;
 					color: rgba(255, 255, 255, 0.6);
+					flex-shrink: 0;
+					margin-right: 20rpx;
 				}
 
 				.info-value {
 					font-size: 26rpx;
 					color: rgba(255, 255, 255, 0.9);
+					text-align: right;
+					word-break: break-all;
 
 					&.price {
 						color: #ffd700;
 						font-weight: bold;
 						font-size: 32rpx;
 					}
-				}
-			}
-		}
-
-		.order-actions {
-			display: flex;
-			gap: 15rpx;
-			justify-content: flex-end;
-
-			.action-btn {
-				padding: 15rpx 35rpx;
-				background: rgba(255, 255, 255, 0.1);
-				border-radius: 30rpx;
-				font-size: 24rpx;
-				color: #ffffff;
-				transition: all 0.3s ease;
-
-				&.primary {
-					background: linear-gradient(to right, #4facfe, #00f2fe);
 				}
 			}
 		}
@@ -272,6 +215,15 @@
 		.empty-text {
 			font-size: 28rpx;
 			color: rgba(255, 255, 255, 0.5);
+			margin-bottom: 30rpx;
+		}
+
+		.empty-btn {
+			padding: 18rpx 48rpx;
+			background: linear-gradient(to right, #4facfe, #00f2fe);
+			border-radius: 40rpx;
+			font-size: 28rpx;
+			color: #ffffff;
 		}
 	}
 </style>

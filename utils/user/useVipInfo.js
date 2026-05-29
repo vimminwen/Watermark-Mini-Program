@@ -88,6 +88,158 @@ export const parseVipApiData = (res) => {
 
 
 
+/** type 字段 → 中文套餐类型 */
+export const formatVipTypeLabel = (type) => {
+	const t = String(type ?? '').trim().toLowerCase()
+	const map = {
+		month: '包月会员',
+		quarter: '季度会员',
+		season: '季度会员',
+		year: '年度会员'
+	}
+	return map[t] || (type ? String(type) : '')
+}
+
+
+
+/** 展示用会员名称：优先 model，否则 type 中文 */
+export const formatVipPlanName = (vipData) => {
+	if (!vipData || typeof vipData !== 'object') return ''
+	const model = String(vipData.model ?? '').trim()
+	if (model) return model
+	return formatVipTypeLabel(vipData.type)
+}
+
+
+
+/** 是否为有效会员（兼容无 expirationTime，仅有 model/type） */
+export const isActiveVipMember = (vipData) => {
+	if (!vipData || typeof vipData !== 'object') return false
+	if (vipData.ifVip === true || vipData.ifVip === 1 || vipData.ifVip === 'true') {
+		return true
+	}
+	const hasPlan = !!(String(vipData.model ?? '').trim() || String(vipData.type ?? '').trim())
+	if (!hasPlan) return false
+	const exp = resolveVipExpirationRaw(vipData)
+	if (!exp) return true
+	return parseExpirationTime(exp) > Date.now()
+}
+
+
+
+export const formatVipExpireDate = (expirationTime) => {
+	const ts = parseExpirationTime(expirationTime)
+	if (!ts) return null
+	const d = new Date(ts)
+	const y = d.getFullYear()
+	const m = String(d.getMonth() + 1).padStart(2, '0')
+	const day = String(d.getDate()).padStart(2, '0')
+	return `${y}-${m}-${day}`
+}
+
+
+
+/** 接口返回的到期时间字段（多种命名） */
+export const resolveVipExpirationRaw = (vipData) => {
+	if (!vipData || typeof vipData !== 'object') return null
+	const raw =
+		vipData.expirationTime ??
+		vipData.expireTime ??
+		vipData.expireAt ??
+		vipData.endTime ??
+		vipData.vipEndTime ??
+		vipData.validUntil ??
+		vipData.deadline ??
+		vipData.expireDate
+	if (raw == null || raw === '') return null
+	return raw
+}
+
+
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+
+
+/** 按套餐 type/model 推断周期天数 */
+export const getVipPlanDays = (vipData) => {
+	const label = `${vipData?.model ?? ''} ${vipData?.type ?? ''}`.toLowerCase()
+	if (label.includes('季') || label.includes('quarter') || label.includes('season')) {
+		return 90
+	}
+	if (label.includes('年') || label.includes('year')) {
+		return 365
+	}
+	return 30
+}
+
+
+
+/**
+ * 解析到期时间：优先接口字段；若无则按开通时间 + 套餐周期估算
+ */
+export const resolveVipExpirationSource = (vipData) => {
+	const raw = resolveVipExpirationRaw(vipData)
+	if (raw) return raw
+	if (!vipData || !isActiveVipMember(vipData)) return null
+
+	const startRaw =
+		vipData.startTime ??
+		vipData.createTime ??
+		vipData.beginTime ??
+		vipData.openTime
+	let startTs = parseExpirationTime(startRaw)
+	if (!startTs) startTs = Date.now()
+
+	return startTs + getVipPlanDays(vipData) * MS_PER_DAY
+}
+
+
+
+/** 根据开通/到期时间估算会员周期已使用百分比 */
+
+export const getMembershipUsedPercent = (vipData) => {
+
+	if (!vipData || typeof vipData !== 'object') return 0
+
+	const end = parseExpirationTime(resolveVipExpirationSource(vipData))
+
+	if (!end) return 0
+
+	let start = parseExpirationTime(
+
+		vipData.startTime ?? vipData.createTime ?? vipData.beginTime ?? vipData.openTime
+
+	)
+
+	if (!start) {
+
+		const label = String(vipData.model ?? vipData.type ?? '').toLowerCase()
+
+		let days = 30
+
+		if (label.includes('季') || label.includes('quarter')) days = 90
+
+		else if (label.includes('年') || label.includes('year')) days = 365
+
+		start = end - days * 24 * 60 * 60 * 1000
+
+	}
+
+	if (end <= start) return 0
+
+	const now = Date.now()
+
+	if (now >= end) return 100
+
+	if (now <= start) return 0
+
+	return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)))
+
+}
+
+
+
 export const useVipInfo = () => {
 
 	const userVipInfo = ref({
@@ -194,11 +346,11 @@ export const useVipInfo = () => {
 
 
 
-		const exp = vipData.expirationTime ?? vipData.expireTime
+		const isValid = isActiveVipMember(vipData)
 
-		const isValid = isVipValid(exp)
+		const expSource = resolveVipExpirationSource(vipData)
 
-
+		const expireDate = formatExpireDate(expSource) || formatVipExpireDate(expSource)
 
 		userVipInfo.value = {
 
@@ -208,15 +360,23 @@ export const useVipInfo = () => {
 
 				...vipData,
 
-				expirationTime: parseExpirationTime(exp),
+				planName: formatVipPlanName(vipData),
 
-				remainingDays: getRemainingDays(exp),
+				typeLabel: formatVipTypeLabel(vipData.type),
 
-				remainingSeconds: getRemainingSeconds(exp),
+				expirationTime: parseExpirationTime(expSource),
 
-				formatTime: formatRemainingTime(exp),
+				remainingDays: getRemainingDays(expSource),
 
-				expireDate: formatExpireDate(exp)
+				remainingSeconds: getRemainingSeconds(expSource),
+
+				formatTime: expSource ? formatRemainingTime(expSource) : '',
+
+				expireDate,
+
+				hasExpireDate: !!expireDate,
+
+				isExpireEstimated: !resolveVipExpirationRaw(vipData) && !!expSource
 
 			} : null
 
@@ -294,10 +454,11 @@ export const useVipInfo = () => {
 
 		getRemainingSeconds,
 
-		formatRemainingTime
+		formatRemainingTime,
+
+		getMembershipUsedPercent
 
 	}
 
 }
-
 

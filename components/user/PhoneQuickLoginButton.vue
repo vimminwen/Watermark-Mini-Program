@@ -78,7 +78,8 @@
 		},
 		devTip: {
 			type: String,
-			default: '微信开发者工具可在「详情 - 本地设置」中开启模拟手机号'
+			default: ''
+			// default: '微信开发者工具可在「详情 - 本地设置」中开启模拟手机号'
 		},
 		/** 登录成功后跳转地址 */
 		redirectUrl: {

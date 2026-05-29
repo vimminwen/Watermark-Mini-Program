@@ -67,6 +67,11 @@
 		</view>
 
 		<tool-tips-card :tips="preset.tips" />
+		<debug-log-panel
+			:logs="debugLogs"
+			:scroll-top="debugScrollTop"
+			@clear="clearDebugLogs"
+		/>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -85,6 +90,18 @@
 		DEFAULT_STYLE_KEY,
 		DEFAULT_STRENGTH
 	} from '@/utils/image/styleTransfer.js'
+	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
+	import { baseUrl } from '@/utils/http.js'
+
+	const {
+		debugLogs,
+		debugScrollTop,
+		clearDebugLogs,
+		logInfo,
+		logStep,
+		logOk,
+		showDebugError
+	} = useDebugLog('styleTransfer')
 
 	const imagePath = ref('')
 	const resultPath = ref('')
@@ -193,11 +210,15 @@
 
 		processing.value = true
 		resultPath.value = ''
-		uni.showLoading({ title: '上传图片...', mask: true })
+		logInfo(`API 根地址: ${baseUrl}`)
+		logStep('1/4 上传图片到 OSS')
+		showTaskLoading({ title: '上传图片...', mask: true })
 
 		try {
 			const ossUrl = await uploadImageToOss(imagePath.value)
-			uni.showLoading({ title: 'AI 生成中...', mask: true })
+			logOk(`OSS 上传成功\n${ossUrl}`)
+			logStep('2/4 提交风格转换任务')
+			showTaskLoading({ title: 'AI 生成中...', mask: true })
 
 			const payload = buildStyleTransferPayload(
 				ossUrl,
@@ -217,26 +238,30 @@
 				if (!aiLogId) {
 					throw new Error('未获取到任务 ID')
 				}
+				logStep(`3/4 轮询任务结果 (id=${aiLogId})`)
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
-					onProgress: () => {
-						uni.showLoading({ title: 'AI 生成中...', mask: true })
+					onProgress: (attempt, maxAttempts) => {
+						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
+						showTaskLoading({ title: 'AI 生成中...', mask: true })
 					}
 				})
+				logOk(`任务完成\n${resultUrl}`)
+			} else {
+				logOk(`同步返回结果\n${resultUrl}`)
 			}
 
-			uni.showLoading({ title: '下载结果...', mask: true })
+			logStep('4/4 下载结果')
+			showTaskLoading({ title: '下载结果...', mask: true })
 			const localPath = await downloadResultImage(resultUrl)
 			resultPath.value = localPath
+			logOk('生成完成')
 			uni.showToast({ title: '生成完成', icon: 'success' })
 		} catch (err) {
 			console.error('[handleProcess]', err)
-			uni.showToast({
-				title: err?.message || '生成失败，请重试',
-				icon: 'none'
-			})
+			showDebugError('生成失败', err)
 		} finally {
 			processing.value = false
-			uni.hideLoading()
+			hideTaskLoading()
 		}
 	}
 

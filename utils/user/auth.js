@@ -7,6 +7,7 @@ import {
 	hasValidToken
 } from '@/utils/request.js';
 import {
+	isActiveVipMember,
 	parseExpirationTime,
 	parseVipApiData
 } from '@/utils/user/useVipInfo.js';
@@ -26,15 +27,7 @@ const readVipCache = () => {
 };
 
 /** 根据 VIP 接口数据判断是否有效会员 */
-const isVipFromData = (vipData) => {
-	if (!vipData || typeof vipData !== 'object') return false;
-	if (vipData.ifVip === true || vipData.ifVip === 1 || vipData.ifVip === 'true') {
-		return true;
-	}
-	const exp = vipData.expirationTime ?? vipData.expireTime ?? vipData.expireAt;
-	const ts = parseExpirationTime(exp);
-	return ts > Date.now();
-};
+const isVipFromData = (vipData) => isActiveVipMember(vipData);
 
 /**
  * 登录状态检查（仅用户主动操作时可弹窗引导登录）

@@ -17,20 +17,31 @@
 		</view>
 		
 		<view class="member-section boxBg">
-			<view class="member-header">
-				<view class="member-badge">
-					<text class="badge-icon">👑</text>
-					<view class="badge-level">专业版</view>
+			<view
+				class="member-header"
+				:class="{ 'member-header--tap': showMemberOpenCta }"
+				@click="handleMemberHeaderClick"
+			>
+				<view class="member-badge" :class="{ inactive: !isVipActive }">
+					<text class="badge-icon">{{ isVipActive ? '👑' : '✨' }}</text>
+					<view class="badge-level">{{ memberBadgeLabel }}</view>
 				</view>
 				<view class="member-info">
-					<text class="member-title">尊贵会员</text>
+					<text class="member-title">{{ memberTitle }}</text>
 					<view class="member-detail">
-						<text class="member-expire">有效期至 2025-12-31</text>
-						<view class="member-progress">
-							<view class="progress-bar">
-								<view class="progress-fill" :style="{ width: '65%' }"></view>
+						<text class="member-expire">{{ memberExpireText }}</text>
+						<view class="member-open-cta" v-if="showMemberOpenCta">
+							<text class="open-vip-btn">去开通</text>
+							<text class="iconfont icon-xiangyou open-vip-arrow"></text>
+						</view>
+						<view class="member-progress" v-else-if="showMemberProgress && isVipActive">
+							<view class="progress-bar" v-if="showVipProgressBar">
+								<view class="progress-fill" :style="{ width: memberUsedPercent + '%' }"></view>
 							</view>
-							<text class="progress-text">已使用 65%</text>
+							<text class="progress-text">{{ memberProgressText }}</text>
+						</view>
+						<view class="member-progress" v-else-if="showMemberProgress && !isLoggedIn">
+							<text class="progress-text">登录查看</text>
 						</view>
 					</view>
 				</view>
@@ -111,6 +122,11 @@
 	import myMenu from '@/api/data/myMenu.json'
 	import { apiGetUserInfo } from '@/api/api.js'
 	import { hasValidToken } from '@/utils/request.js'
+	import {
+		useVipInfo,
+		getMembershipUsedPercent,
+		formatVipPlanName
+	} from '@/utils/user/useVipInfo.js'
 
 	const defaultProfile = {
 		avatar: '/static/logo.png',
@@ -131,6 +147,62 @@
 	const isLoggedIn = ref(false)
 	const avatarErrored = ref(false)
 	const userProfile = ref({ ...defaultProfile })
+
+	const { userVipInfo, getVipInfo } = useVipInfo()
+
+	const isVipActive = computed(() => userVipInfo.value.ifVip)
+
+	const memberBadgeLabel = computed(() => {
+		const detail = userVipInfo.value.vipDetail
+		if (!isVipActive.value || !detail) return '开通'
+		const name = detail.planName || formatVipPlanName(detail)
+		if (!name) return 'VIP'
+		if (name.length <= 4) return name
+		if (name.includes('季度')) return '季度'
+		if (name.includes('月度') || name.includes('包月')) return '月度'
+		if (name.includes('年度') || name.includes('年')) return '年度'
+		return 'VIP'
+	})
+
+	const memberTitle = computed(() => {
+		if (!isLoggedIn.value) return '会员中心'
+		if (!isVipActive.value) return '开通会员'
+		const detail = userVipInfo.value.vipDetail
+		return detail?.planName || formatVipPlanName(detail) || '尊贵会员'
+	})
+
+	const memberExpireText = computed(() => {
+		if (!isLoggedIn.value) return '登录后查看会员状态'
+		if (!isVipActive.value) return '开通会员解锁全部工具与权益'
+		const detail = userVipInfo.value.vipDetail
+		if (detail?.expireDate) return `有效期至 ${detail.expireDate}`
+		return '会员有效期加载中…'
+	})
+
+	const memberUsedPercent = computed(() => {
+		if (!isVipActive.value) return 0
+		return getMembershipUsedPercent(userVipInfo.value.vipDetail)
+	})
+
+	const showVipProgressBar = computed(() => {
+		const detail = userVipInfo.value.vipDetail
+		return isVipActive.value && !!detail?.expireDate
+	})
+
+	const memberProgressText = computed(() => {
+		if (!isLoggedIn.value) return '登录查看'
+		if (!isVipActive.value) return '去开通'
+		const detail = userVipInfo.value.vipDetail
+		const remain = detail?.formatTime && detail.formatTime !== '已过期' ? detail.formatTime : ''
+		if (remain) return `剩余 ${remain} · 已用 ${memberUsedPercent.value}%`
+		if (detail?.remainingDays > 0) return `剩余 ${detail.remainingDays}天 · 已用 ${memberUsedPercent.value}%`
+		return `已用 ${memberUsedPercent.value}%`
+	})
+
+	const showMemberProgress = computed(() => isLoggedIn.value)
+
+	/** 已登录且非会员：展示「去开通」并可点击跳转充值 */
+	const showMemberOpenCta = computed(() => isLoggedIn.value && !isVipActive.value)
 
 	const displayAvatar = computed(() => {
 		if (avatarErrored.value || !isLoggedIn.value) return LOGO
@@ -187,6 +259,7 @@
 		if (!hasValidToken() || !userId) {
 			isLoggedIn.value = false
 			userProfile.value = { ...defaultProfile }
+			userVipInfo.value = { ifVip: false, vipDetail: null }
 			return
 		}
 
@@ -222,8 +295,30 @@
 		}
 	}
 
+	const loadMemberInfo = async () => {
+		if (!hasValidToken() || !uni.getStorageSync('userIdStorage')) {
+			userVipInfo.value = { ifVip: false, vipDetail: null }
+			return
+		}
+		try {
+			await getVipInfo()
+			const detail = userVipInfo.value.vipDetail
+			if (isVipActive.value && detail) {
+				const level = detail.planName || detail.model || detail.typeLabel
+				if (level) {
+					userProfile.value = { ...userProfile.value, level: String(level) }
+				}
+			} else if (isLoggedIn.value) {
+				userProfile.value = { ...userProfile.value, level: '普通用户' }
+			}
+		} catch (err) {
+			console.warn('[loadMemberInfo]', err)
+		}
+	}
+
 	onShow(() => {
 		loadUserProfile()
+		loadMemberInfo()
 	})
 
 	const handleMenuClick = (item) => {
@@ -242,6 +337,15 @@
 		uni.navigateTo({
 			url: '/pages/member/recharge'
 		})
+	}
+
+	const handleMemberHeaderClick = () => {
+		if (isVipActive.value) return
+		if (!isLoggedIn.value) {
+			goToUserCenter()
+			return
+		}
+		goToRecharge()
 	}
 
 	const goToCancel = () => {
@@ -327,6 +431,10 @@
 			padding-bottom: 25rpx;
 			border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
 			margin-bottom: 25rpx;
+
+			&--tap:active {
+				opacity: 0.88;
+			}
 			
 			.member-badge {
 				display: flex;
@@ -339,6 +447,15 @@
 				border-radius: 50%;
 				margin-right: 25rpx;
 				box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.3);
+
+				&.inactive {
+					background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12));
+					box-shadow: none;
+
+					.badge-level {
+						color: rgba(255, 255, 255, 0.85);
+					}
+				}
 				
 				.badge-icon {
 					font-size: 40rpx;
@@ -372,6 +489,28 @@
 						font-size: 24rpx;
 						color: rgba(255, 255, 255, 0.7);
 						margin-bottom: 8rpx;
+					}
+
+					.member-open-cta {
+						display: flex;
+						align-items: center;
+						justify-content: space-between;
+						margin-top: 8rpx;
+						padding: 14rpx 20rpx;
+						background: rgba(79, 172, 254, 0.15);
+						border-radius: 12rpx;
+						border: 1rpx solid rgba(79, 172, 254, 0.35);
+
+						.open-vip-btn {
+							font-size: 26rpx;
+							font-weight: bold;
+							color: #4facfe;
+						}
+
+						.open-vip-arrow {
+							font-size: 24rpx;
+							color: #4facfe;
+						}
 					}
 					
 					.member-progress {

@@ -80,12 +80,15 @@
 	import { hasValidToken, isSilentErrorMessage } from '@/utils/request.js'
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 	import { pickLocalImage, handlePickLocalImageError } from '@/utils/image/pickLocalImage.js'
+	import { useVipInfo } from '@/utils/user/useVipInfo.js'
 
 	const loading = ref(false)
 	const saving = ref(false)
 	const avatarUploading = ref(false)
 	const isLoggedIn = ref(true)
 	const serverImage = ref('')
+
+	const { userVipInfo, getVipInfo } = useVipInfo()
 
 	const userInfo = ref({
 		id: '',
@@ -157,6 +160,18 @@
 		}
 	}
 
+	const applyVipToProfile = () => {
+		const detail = userVipInfo.value.vipDetail
+		if (!userVipInfo.value.ifVip || !detail) {
+			return
+		}
+		userInfo.value = {
+			...userInfo.value,
+			level: detail.planName || detail.model || detail.typeLabel || '会员',
+			expireDate: detail.expireDate || '未开通'
+		}
+	}
+
 	const loadUserInfo = async () => {
 		const userId = uni.getStorageSync('userIdStorage')
 		if (!hasValidToken() || !userId) {
@@ -169,18 +184,25 @@
 
 		loading.value = true
 		try {
-			const res = await apiGetUserInfo(userId)
-			const body = res?.data
+			const [userRes] = await Promise.all([
+				apiGetUserInfo(userId),
+				getVipInfo()
+			])
+			const body = userRes?.data
 			const user = pickUserFromBody(body)
 
 			if (user) {
 				userInfo.value = mapUserFromApi(user, userInfo.value)
-				uni.setStorageSync('userInfo', userInfo.value)
-				uni.setStorageSync('userInfoStorage', user)
-				return
 			}
 
-			if (!isApiSuccess(body)) {
+			applyVipToProfile()
+
+			if (user) {
+				uni.setStorageSync('userInfo', userInfo.value)
+				uni.setStorageSync('userInfoStorage', user)
+			}
+
+			if (!user && !isApiSuccess(body)) {
 				const msg = getApiMessage(body, '获取用户信息失败')
 				if (isSilentErrorMessage(msg)) {
 					console.warn('[loadUserInfo]', msg, body)

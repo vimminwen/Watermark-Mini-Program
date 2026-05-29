@@ -77,6 +77,12 @@
 				<text class="tip-text">{{ tip }}</text>
 			</view>
 		</view>
+
+		<debug-log-panel
+			:logs="debugLogs"
+			:scroll-top="debugScrollTop"
+			@clear="clearDebugLogs"
+		/>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -87,6 +93,19 @@
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
 	import { extractShareUrl, normalizeParseResult } from '@/utils/video/videoParse.js'
 	import { checkLogin } from '@/utils/user/auth.js'
+	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
+	import { baseUrl } from '@/utils/http.js'
+
+	const {
+		debugLogs,
+		debugScrollTop,
+		clearDebugLogs,
+		logInfo,
+		logStep,
+		logOk,
+		logWarn,
+		showDebugError
+	} = useDebugLog('videoParse')
 
 	const shareText = ref('')
 	const parsing = ref(false)
@@ -134,34 +153,37 @@
 
 		parsing.value = true
 		parseResult.value = null
-		uni.showLoading({ title: '解析中...', mask: true })
+		logInfo(`API 根地址: ${baseUrl}`)
+		logStep(`1/2 解析分享链接\n${url}`)
+		showTaskLoading({ title: '解析中...', mask: true })
 
 		try {
 			const res = await apiParseVideo({ url })
 			const body = res?.data
 
 			if (!isApiSuccess(body)) {
-				uni.showToast({ title: getApiMessage(body, '解析失败'), icon: 'none' })
+				const msg = getApiMessage(body, '解析失败')
+				logWarn(msg)
+				uni.showToast({ title: msg, icon: 'none' })
 				return
 			}
 
 			const result = normalizeParseResult(body)
 			if (!result?.videoUrl) {
+				logWarn('未获取到视频地址')
 				uni.showToast({ title: '未获取到视频地址', icon: 'none' })
 				return
 			}
 
 			parseResult.value = result
+			logOk(`解析成功\n${result.videoUrl}`)
 			uni.showToast({ title: '解析成功', icon: 'success' })
 		} catch (err) {
 			console.error('[handleParse]', err)
-			uni.showToast({
-				title: err?.message || getApiMessage(err?.data, '解析失败，请稍后重试'),
-				icon: 'none'
-			})
+			showDebugError('解析失败', err)
 		} finally {
 			parsing.value = false
-			uni.hideLoading()
+			hideTaskLoading()
 		}
 	}
 
@@ -172,7 +194,7 @@
 		}
 		uni.setClipboardData({
 			data: String(text),
-			success: () => uni.showToast({ title: okTitle, icon: 'success' })
+			success: () => uni.showToast({ title: okTitle, icon: 'none' })
 		})
 	}
 

@@ -4,25 +4,30 @@
 		<view class="header">
 			<view class="subtitle">选择适合您的会员套餐</view>
 		</view>
-		
-		<view class="package-list">
-			<view 
-				class="package-item" 
+
+		<view class="loading-wrap" v-if="loading">
+			<text class="loading-text">套餐加载中…</text>
+		</view>
+
+		<view class="package-list" v-else-if="packages.length">
+			<view
+				class="package-item"
 				:class="{ active: selectedIndex === index }"
-				v-for="(item, index) in packages" 
-				:key="index"
+				v-for="(item, index) in packages"
+				:key="item.id"
 				@click="selectPackage(index)"
 			>
 				<view class="package-header">
 					<text class="package-name">{{ item.name }}</text>
-					<view class="package-tag" v-if="item.hot">热门</view>
+					<view class="package-tag" v-if="item.badgeText">{{ item.badgeText }}</view>
 				</view>
 				<view class="package-price">
 					<text class="price-unit">¥</text>
 					<text class="price-value">{{ item.price }}</text>
 					<text class="price-unit">/{{ item.unit }}</text>
+					<text class="price-original" v-if="item.originalPrice">¥{{ item.originalPrice }}</text>
 				</view>
-				<view class="package-desc">{{ item.desc }}</view>
+				<view class="package-desc" v-if="item.desc">{{ item.desc }}</view>
 				<view class="package-benefits">
 					<text v-for="(benefit, idx) in item.benefits" :key="idx" class="benefit-tag">
 						✓ {{ benefit }}
@@ -30,12 +35,17 @@
 				</view>
 			</view>
 		</view>
-		
-		<view class="payment-section">
+
+		<view class="empty-wrap" v-else>
+			<text class="empty-text">暂无可用套餐</text>
+			<view class="empty-btn" @click="loadPackages">重新加载</view>
+		</view>
+
+		<view class="payment-section" v-if="packages.length">
 			<view class="payment-title">支付方式</view>
 			<view class="payment-methods">
-				<view 
-					class="method-item" 
+				<view
+					class="method-item"
 					:class="{ active: paymentMethod === 'wechat' }"
 					@click="paymentMethod = 'wechat'"
 				>
@@ -43,54 +53,161 @@
 					<text class="method-name">微信支付</text>
 					<view class="method-check" :class="{ active: paymentMethod === 'wechat' }"></view>
 				</view>
-	
 			</view>
 		</view>
-		
-		<view class="bottom-section">
+
+		<view class="bottom-section" v-if="selectedPackage">
 			<view class="total-price">
 				<text class="price-label">合计：</text>
-				<text class="price-value">¥{{ packages[selectedIndex].price }}</text>
+				<text class="price-value">¥{{ selectedPackage.price }}</text>
 			</view>
-			<view class="pay-button" @click="handlePay">立即支付</view>
+			<PayButton :member-data="selectedMemberData" @pay-success="onPaySuccess">
+				<view class="pay-button">立即支付</view>
+			</PayButton>
 		</view>
 	</view>
 </template>
 
 <script setup>
-	import { ref } from 'vue'
+	import { ref, computed } from 'vue'
+	import { onLoad } from '@dcloudio/uni-app'
+	import PayButton from '@/components/PayButton.vue'
+	import { apiGetMemberPrice } from '@/api/api.js'
+	import { parseMemberPackageList } from '@/utils/pay/memberPackage.js'
 
-	const selectedIndex = ref(1)
+	const selectedIndex = ref(0)
 	const paymentMethod = ref('wechat')
+	const loading = ref(true)
+	const packages = ref([])
+	const routeOptions = ref({})
+	/** 从待支付订单进入时携带的原订单信息 */
+	const pendingOrder = ref(null)
 
-	const packages = [
-		{
-			name: '月度会员',
-			price: '19.9',
-			unit: '月',
-			desc: '适合短期使用',
-			hot: false,
-			benefits: ['全部工具解锁', '无广告干扰', '云存储5GB']
-		},
-		{
-			name: '季度会员',
-			price: '49.9',
-			unit: '季',
-			desc: '性价比之选，立省10元',
-			hot: true,
-			benefits: ['全部工具解锁', '无广告干扰', '云存储20GB', '专属客服']
+	const selectedPackage = computed(() => packages.value[selectedIndex.value] || null)
+
+	const orderMatchesPackage = (order, pkg) => {
+		if (!order || !pkg) return false
+		const title = String(order.title || '').trim()
+		const amount = String(order.amount ?? '').trim()
+		if (title && (pkg.name === title || title.includes(pkg.name) || pkg.name.includes(title))) {
+			return true
 		}
-	]
+		if (amount && (String(pkg.price) === amount || Number(pkg.price) === Number(amount))) {
+			return true
+		}
+		return false
+	}
+
+	const selectedMemberData = computed(() => {
+		const item = selectedPackage.value
+		if (!item) return {}
+		const data = {
+			id: item.id,
+			title: item.name,
+			money: item.price,
+			vipType: item.vipType
+		}
+		if (pendingOrder.value && orderMatchesPackage(pendingOrder.value, item)) {
+			data.reusePendingOrder = true
+			data.orderNo = pendingOrder.value.orderNo
+			data.orderId = pendingOrder.value.orderId
+			if (pendingOrder.value.vipType) {
+				data.vipType = pendingOrder.value.vipType
+			}
+		}
+		return data
+	})
 
 	const selectPackage = (index) => {
 		selectedIndex.value = index
+		const pkg = packages.value[index]
+		if (pendingOrder.value && !orderMatchesPackage(pendingOrder.value, pkg)) {
+			pendingOrder.value = null
+		}
 	}
 
-	const handlePay = () => {
-		uni.showToast({
-			title: '支付功能开发中',
-			icon: 'none'
-		})
+	/** 根据订单/路由参数匹配套餐索引 */
+	const resolvePackageIndex = (options = {}, list = packages.value) => {
+		if (!list.length) return 0
+
+		const packageName = decodeURIComponent(options.package || options.name || '').trim()
+		const amount = String(options.amount ?? '').trim()
+		const vipType = String(options.vipType ?? '').trim().toLowerCase()
+
+		if (packageName) {
+			const exact = list.findIndex(p => p.name === packageName)
+			if (exact >= 0) return exact
+
+			const fuzzy = list.findIndex(
+				p => packageName.includes(p.name) || p.name.includes(packageName)
+			)
+			if (fuzzy >= 0) return fuzzy
+		}
+
+		if (amount) {
+			const byAmount = list.findIndex(
+				p => String(p.price) === amount || Number(p.price) === Number(amount)
+			)
+			if (byAmount >= 0) return byAmount
+		}
+
+		if (vipType) {
+			const byType = list.findIndex(
+				p => String(p.vipType).toLowerCase() === vipType || String(p.code).toLowerCase() === vipType
+			)
+			if (byType >= 0) return byType
+			if (vipType === 'quarter') {
+				const seasonIdx = list.findIndex(p => p.vipType === 'season' || p.code === 'season')
+				if (seasonIdx >= 0) return seasonIdx
+			}
+		}
+
+		const badgeIdx = list.findIndex(p => p.badgeText)
+		return badgeIdx >= 0 ? badgeIdx : 0
+	}
+
+	const applyRouteOptions = (options = {}) => {
+		selectedIndex.value = resolvePackageIndex(options, packages.value)
+
+		const orderNo = decodeURIComponent(options.orderNo || '').trim()
+		const orderId = String(options.orderId || '').trim()
+		if (orderNo || orderId) {
+			pendingOrder.value = {
+				orderNo,
+				orderId,
+				title: decodeURIComponent(options.package || '').trim(),
+				amount: String(options.amount ?? '').trim(),
+				vipType: String(options.vipType ?? '').trim()
+			}
+		}
+	}
+
+	const loadPackages = async () => {
+		loading.value = true
+		try {
+			const res = await apiGetMemberPrice()
+			packages.value = parseMemberPackageList(res)
+			applyRouteOptions(routeOptions.value)
+		} catch (err) {
+			console.warn('[loadPackages]', err)
+			packages.value = []
+			uni.showToast({ title: '套餐加载失败', icon: 'none' })
+		} finally {
+			loading.value = false
+		}
+	}
+
+	onLoad((options) => {
+		routeOptions.value = options || {}
+		loadPackages()
+	})
+
+	const onPaySuccess = () => {
+		setTimeout(() => {
+			uni.navigateBack({
+				fail: () => uni.switchTab({ url: '/pages/my/index' })
+			})
+		}, 1200)
 	}
 </script>
 
@@ -100,7 +217,6 @@
 		box-sizing: border-box;
 		background: linear-gradient(to bottom, #050d40, #233968);
 		padding: 30rpx;
-		/* 为底部固定支付栏 + 安全区留出滚动空间 */
 		padding-bottom: calc(200rpx + constant(safe-area-inset-bottom));
 		padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
 	}
@@ -112,6 +228,29 @@
 		.subtitle {
 			font-size: 28rpx;
 			color: rgba(255, 255, 255, 0.6);
+		}
+	}
+
+	.loading-wrap,
+	.empty-wrap {
+		padding: 120rpx 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+
+		.loading-text,
+		.empty-text {
+			font-size: 28rpx;
+			color: rgba(255, 255, 255, 0.6);
+			margin-bottom: 24rpx;
+		}
+
+		.empty-btn {
+			padding: 18rpx 48rpx;
+			background: linear-gradient(to right, #4facfe, #00f2fe);
+			border-radius: 40rpx;
+			font-size: 28rpx;
+			color: #ffffff;
 		}
 	}
 
@@ -170,6 +309,13 @@
 					font-weight: bold;
 					color: #ffd700;
 					margin: 0 8rpx;
+				}
+
+				.price-original {
+					margin-left: 16rpx;
+					font-size: 26rpx;
+					color: rgba(255, 255, 255, 0.45);
+					text-decoration: line-through;
 				}
 			}
 

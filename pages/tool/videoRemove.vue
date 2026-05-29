@@ -132,6 +132,11 @@
 		</view>
 
 		<tool-tips-card :tips="tips" />
+		<debug-log-panel
+			:logs="debugLogs"
+			:scroll-top="debugScrollTop"
+			@clear="clearDebugLogs"
+		/>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -152,6 +157,18 @@
 		buildSubtitleRemovalPayload,
 		normalizeRemovalVideoUrl
 	} from '@/utils/video/subtitleRemoval.js'
+	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
+	import { baseUrl } from '@/utils/http.js'
+
+	const {
+		debugLogs,
+		debugScrollTop,
+		clearDebugLogs,
+		logInfo,
+		logStep,
+		logOk,
+		showDebugError
+	} = useDebugLog('videoRemove')
 
 	const instance = getCurrentInstance()
 
@@ -380,11 +397,15 @@
 
 		processing.value = true
 		resultPath.value = ''
-		uni.showLoading({ title: '上传视频...', mask: true })
+		logInfo(`API 根地址: ${baseUrl}`)
+		logStep('1/4 上传视频到 OSS')
+		showTaskLoading({ title: '上传视频...', mask: true })
 
 		try {
 			const ossUrl = await uploadVideoToOss(videoPath.value)
-			uni.showLoading({ title: 'AI 消除中...', mask: true })
+			logOk(`OSS 上传成功\n${ossUrl}`)
+			logStep('2/4 提交视频消除任务')
+			showTaskLoading({ title: 'AI 消除中...', mask: true })
 
 			const payload = buildSubtitleRemovalPayload({
 				videoUrl: ossUrl,
@@ -408,27 +429,31 @@
 				if (!aiLogId) {
 					throw new Error('未获取到任务 ID')
 				}
-				uni.showLoading({ title: 'AI 消除中...', mask: true })
+				logStep(`3/4 轮询任务结果 (id=${aiLogId})`)
+				showTaskLoading({ title: 'AI 消除中...', mask: true })
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
-					onProgress: () => {
-						uni.showLoading({ title: 'AI 消除中...', mask: true })
+					onProgress: (attempt, maxAttempts) => {
+						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
+						showTaskLoading({ title: 'AI 消除中...', mask: true })
 					}
 				})
+				logOk(`任务完成\n${resultUrl}`)
+			} else {
+				logOk(`同步返回结果\n${resultUrl}`)
 			}
 
-			uni.showLoading({ title: '下载结果...', mask: true })
+			logStep('4/4 下载结果')
+			showTaskLoading({ title: '下载结果...', mask: true })
 			const localPath = await downloadVideo(resultUrl)
 			resultPath.value = localPath
+			logOk('处理完成')
 			uni.showToast({ title: '处理完成', icon: 'success' })
 		} catch (err) {
 			console.error('[handleRemove]', err)
-			uni.showToast({
-				title: err?.message || '处理失败，请重试',
-				icon: 'none'
-			})
+			showDebugError('视频消除失败', err)
 		} finally {
 			processing.value = false
-			uni.hideLoading()
+			hideTaskLoading()
 		}
 	}
 

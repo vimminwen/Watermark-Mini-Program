@@ -119,7 +119,8 @@
 			"path": "pages/member/orders",
 			"style": {
 				"navigationBarTitleText": "支付订单",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarBackgroundColor": "#050d40",
+				"enablePullDownRefresh": true
 			}
 		},
 		{

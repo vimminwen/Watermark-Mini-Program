@@ -5,22 +5,34 @@
 			<view class="subtitle">我们很遗憾您要离开</view>
 		</view>
 		
-		<view class="info-section boxBg">
+		<view class="info-section boxBg" v-if="loading">
+			<text class="info-loading">会员信息加载中…</text>
+		</view>
+
+		<view class="info-section boxBg non-member" v-else-if="!isVipActive">
+			<text class="non-member-icon">ℹ️</text>
+			<text class="non-member-title">{{ notMemberTitle }}</text>
+			<text class="non-member-desc">{{ notMemberDesc }}</text>
+			<view class="non-member-btn" v-if="!isLoggedIn" @click="goLogin">去登录</view>
+			<view class="non-member-btn" v-else @click="goRecharge">开通会员</view>
+		</view>
+
+		<view class="info-section boxBg" v-else>
 			<view class="info-item">
 				<text class="info-label">当前会员</text>
-				<text class="info-value">专业版会员</text>
+				<text class="info-value">{{ memberName }}</text>
 			</view>
 			<view class="info-item">
 				<text class="info-label">到期时间</text>
-				<text class="info-value">2025-12-31</text>
+				<text class="info-value">{{ expireDate }}</text>
 			</view>
 			<view class="info-item">
-				<text class="info-label">剩余天数</text>
-				<text class="info-value highlight">217天</text>
+				<text class="info-label">剩余时长</text>
+				<text class="info-value highlight">{{ remainingText }}</text>
 			</view>
 		</view>
 		
-		<view class="survey-section boxBg">
+		<view class="survey-section boxBg" v-if="isVipActive && !loading">
 			<view class="survey-title">请告诉我们原因（可选）</view>
 			<view class="reason-list">
 				<view 
@@ -45,7 +57,7 @@
 			</view>
 		</view>
 		
-		<view class="warning-section boxBg">
+		<view class="warning-section boxBg" v-if="isVipActive && !loading">
 			<view class="warning-icon">⚠️</view>
 			<view class="warning-text">
 				<text class="warning-title">重要提醒</text>
@@ -56,18 +68,59 @@
 		</view>
 		
 		<view class="button-section">
-			<view class="cancel-button" @click="handleCancel">取消</view>
-			<view class="confirm-button" @click="handleConfirm">确认退订</view>
+			<view class="cancel-button" @click="handleCancel">{{ isVipActive ? '取消' : '返回' }}</view>
+			<view
+				class="confirm-button"
+				:class="{ disabled: !canConfirmCancel }"
+				v-if="isVipActive && !loading"
+				@click="handleConfirm"
+			>确认退订</view>
 		</view>
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
-	import { ref } from 'vue'
+	import { ref, computed } from 'vue'
+	import { onShow } from '@dcloudio/uni-app'
+	import { hasValidToken } from '@/utils/request.js'
+	import { useVipInfo } from '@/utils/user/useVipInfo.js'
 
 	const selectedReason = ref(-1)
 	const feedback = ref('')
+	const loading = ref(true)
+	const isLoggedIn = ref(false)
+
+	const { userVipInfo, getVipInfo } = useVipInfo()
+
+	const isVipActive = computed(() => userVipInfo.value.ifVip)
+	const vipDetail = computed(() => userVipInfo.value.vipDetail)
+	const canConfirmCancel = computed(() => isLoggedIn.value && isVipActive.value && !loading.value)
+
+	const memberName = computed(() => {
+		return vipDetail.value?.planName || vipDetail.value?.model || '尊贵会员'
+	})
+
+	const expireDate = computed(() => vipDetail.value?.expireDate || '--')
+
+	const remainingText = computed(() => {
+		const detail = vipDetail.value
+		if (detail?.formatTime && detail.formatTime !== '已过期') {
+			return `剩余 ${detail.formatTime}`
+		}
+		if (detail?.remainingDays > 0) return `剩余 ${detail.remainingDays}天`
+		return '--'
+	})
+
+	const notMemberTitle = computed(() => {
+		if (!isLoggedIn.value) return '请先登录'
+		return '您当前不是会员'
+	})
+
+	const notMemberDesc = computed(() => {
+		if (!isLoggedIn.value) return '登录后可查看会员状态并办理退订'
+		return '尚未开通或会员已过期，无需退订'
+	})
 
 	const reasons = [
 		'价格太高',
@@ -78,11 +131,49 @@
 		'其他原因'
 	]
 
+	const loadVipInfo = async () => {
+		loading.value = true
+		if (!hasValidToken() || !uni.getStorageSync('userIdStorage')) {
+			isLoggedIn.value = false
+			userVipInfo.value = { ifVip: false, vipDetail: null }
+			loading.value = false
+			return
+		}
+		isLoggedIn.value = true
+		try {
+			await getVipInfo()
+		} catch (err) {
+			console.warn('[cancel loadVipInfo]', err)
+			userVipInfo.value = { ifVip: false, vipDetail: null }
+		} finally {
+			loading.value = false
+		}
+	}
+
+	onShow(() => {
+		loadVipInfo()
+	})
+
+	const goLogin = () => {
+		uni.navigateTo({ url: '/pages/user/login' })
+	}
+
+	const goRecharge = () => {
+		uni.navigateTo({ url: '/pages/member/recharge' })
+	}
+
 	const handleCancel = () => {
 		uni.navigateBack()
 	}
 
 	const handleConfirm = () => {
+		if (!canConfirmCancel.value) {
+			uni.showToast({
+				title: isLoggedIn.value ? '您当前不是会员，无法退订' : '请先登录',
+				icon: 'none'
+			})
+			return
+		}
 		uni.showModal({
 			title: '确认退订',
 			content: '您确定要退订会员吗？',
@@ -131,6 +222,49 @@
 
 	.info-section {
 		padding: 35rpx;
+
+		.info-loading {
+			display: block;
+			text-align: center;
+			font-size: 28rpx;
+			color: rgba(255, 255, 255, 0.6);
+			padding: 20rpx 0;
+		}
+
+		&.non-member {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			text-align: center;
+			padding: 50rpx 35rpx;
+
+			.non-member-icon {
+				font-size: 64rpx;
+				margin-bottom: 20rpx;
+			}
+
+			.non-member-title {
+				font-size: 32rpx;
+				font-weight: bold;
+				color: #ffffff;
+				margin-bottom: 16rpx;
+			}
+
+			.non-member-desc {
+				font-size: 26rpx;
+				color: rgba(255, 255, 255, 0.65);
+				line-height: 1.6;
+				margin-bottom: 30rpx;
+			}
+
+			.non-member-btn {
+				padding: 18rpx 48rpx;
+				background: linear-gradient(to right, #4facfe, #00f2fe);
+				border-radius: 40rpx;
+				font-size: 28rpx;
+				color: #ffffff;
+			}
+		}
 
 		.info-item {
 			display: flex;
@@ -309,6 +443,12 @@
 			font-weight: bold;
 			color: #ffffff;
 			box-shadow: 0 8rpx 30rpx rgba(255, 107, 107, 0.3);
+
+			&.disabled {
+				background: rgba(255, 255, 255, 0.15);
+				color: rgba(255, 255, 255, 0.4);
+				box-shadow: none;
+			}
 		}
 	}
 </style>

@@ -69,6 +69,11 @@
 		</view>
 
 		<tool-tips-card :tips="tips" />
+		<debug-log-panel
+			:logs="debugLogs"
+			:scroll-top="debugScrollTop"
+			@clear="clearDebugLogs"
+		/>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -86,6 +91,18 @@
 		buildImageTextExtractionPayload,
 		parseImageTextSubmit
 	} from '@/utils/image/imageTextExtraction.js'
+	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
+	import { baseUrl } from '@/utils/http.js'
+
+	const {
+		debugLogs,
+		debugScrollTop,
+		clearDebugLogs,
+		logInfo,
+		logStep,
+		logOk,
+		showDebugError
+	} = useDebugLog('imageTextExtract')
 
 	const imagePath = ref('')
 	const resultText = ref('')
@@ -175,7 +192,7 @@
 		uni.setClipboardData({
 			data: resultText.value,
 			success: () => {
-				uni.showToast({ title: '已复制到剪贴板', icon: 'success' })
+				uni.showToast({ title: '已复制到剪贴板', icon: 'none' })
 			},
 			fail: () => {
 				uni.showToast({ title: '复制失败', icon: 'none' })
@@ -190,11 +207,15 @@
 		processing.value = true
 		resultText.value = ''
 		editorFocus.value = false
-		uni.showLoading({ title: '上传图片...', mask: true })
+		logInfo(`API 根地址: ${baseUrl}`)
+		logStep('1/3 上传图片到 OSS')
+		showTaskLoading({ title: '上传图片...', mask: true })
 
 		try {
 			const ossUrl = await uploadImageToOss(imagePath.value)
-			uni.showLoading({ title: '识别中...', mask: true })
+			logOk(`OSS 上传成功\n${ossUrl}`)
+			logStep('2/3 提交 OCR 任务')
+			showTaskLoading({ title: '识别中...', mask: true })
 
 			const payload = buildImageTextExtractionPayload(ossUrl)
 			const res = await apiImageTextExtraction(payload)
@@ -207,15 +228,20 @@
 			let text = syncText
 
 			if (aiLogId) {
-				uni.showLoading({ title: '识别中，请稍候...', mask: true })
+				logStep(`3/3 轮询任务结果 (id=${aiLogId})`)
+				showTaskLoading({ title: '识别中，请稍候...', mask: true })
 				text = await pollAiLogResult(apiGetAiLog, aiLogId, {
 					resolve: resolveAiLogText,
 					maxAttempts: 90,
 					interval: 2000,
-					onProgress: () => {
-						uni.showLoading({ title: '识别中，请稍候...', mask: true })
+					onProgress: (attempt, maxAttempts) => {
+						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
+						showTaskLoading({ title: '识别中，请稍候...', mask: true })
 					}
 				})
+				logOk(`识别完成，${text.length} 字`)
+			} else {
+				logOk(`同步返回，${text?.length || 0} 字`)
 			}
 
 			if (!text) {
@@ -227,13 +253,10 @@
 			uni.showToast({ title: '识别完成，可点击编辑', icon: 'success' })
 		} catch (err) {
 			console.error('[imageTextExtract]', err)
-			uni.showToast({
-				title: err?.message || '识别失败，请重试',
-				icon: 'none'
-			})
+			showDebugError('识别失败', err)
 		} finally {
 			processing.value = false
-			uni.hideLoading()
+			hideTaskLoading()
 		}
 	}
 </script>

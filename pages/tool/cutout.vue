@@ -44,6 +44,11 @@
 		</view>
 
 		<tool-tips-card :tips="tips" />
+		<debug-log-panel
+			:logs="debugLogs"
+			:scroll-top="debugScrollTop"
+			@clear="clearDebugLogs"
+		/>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -57,6 +62,18 @@
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 	import { extractAiLogId, pollAiLogResult, resolveAiLogResultUrl } from '@/utils/ai/aiLog.js'
 	import { buildCutoutPayload } from '@/utils/image/cutout.js'
+	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
+	import { baseUrl } from '@/utils/http.js'
+
+	const {
+		debugLogs,
+		debugScrollTop,
+		clearDebugLogs,
+		logInfo,
+		logStep,
+		logOk,
+		showDebugError
+	} = useDebugLog('cutout')
 
 	const imagePath = ref('')
 	const resultPath = ref('')
@@ -154,11 +171,15 @@
 
 		processing.value = true
 		resultPath.value = ''
-		uni.showLoading({ title: '上传图片...', mask: true })
+		logInfo(`API 根地址: ${baseUrl}`)
+		logStep('1/4 上传图片到 OSS')
+		showTaskLoading({ title: '上传图片...', mask: true })
 
 		try {
 			const ossUrl = await uploadImageToOss(imagePath.value)
-			uni.showLoading({ title: 'AI 抠图中...', mask: true })
+			logOk(`OSS 上传成功\n${ossUrl}`)
+			logStep('2/4 提交抠图任务')
+			showTaskLoading({ title: 'AI 抠图中...', mask: true })
 
 			const payload = buildCutoutPayload(ossUrl)
 			const res = await apiCutout(payload)
@@ -174,28 +195,31 @@
 				if (!aiLogId) {
 					throw new Error('未获取到任务 ID')
 				}
-
-				uni.showLoading({ title: 'AI 抠图中...', mask: true })
+				logStep(`3/4 轮询任务结果 (id=${aiLogId})`)
+				showTaskLoading({ title: 'AI 抠图中...', mask: true })
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
-					onProgress: () => {
-						uni.showLoading({ title: 'AI 抠图中...', mask: true })
+					onProgress: (attempt, maxAttempts) => {
+						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
+						showTaskLoading({ title: 'AI 抠图中...', mask: true })
 					}
 				})
+				logOk(`任务完成\n${resultUrl}`)
+			} else {
+				logOk(`同步返回结果\n${resultUrl}`)
 			}
 
-			uni.showLoading({ title: '下载结果...', mask: true })
+			logStep('4/4 下载结果')
+			showTaskLoading({ title: '下载结果...', mask: true })
 			const localPath = await downloadResultImage(resultUrl)
 			setResultFromPath(localPath)
+			logOk('抠图完成')
 			uni.showToast({ title: '抠图完成', icon: 'success' })
 		} catch (err) {
 			console.error('[handleCutout]', err)
-			uni.showToast({
-				title: err?.message || '抠图失败，请重试',
-				icon: 'none'
-			})
+			showDebugError('抠图失败', err)
 		} finally {
 			processing.value = false
-			uni.hideLoading()
+			hideTaskLoading()
 		}
 	}
 

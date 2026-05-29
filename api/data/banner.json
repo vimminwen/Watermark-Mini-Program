@@ -1,13 +1,13 @@
 [{
 	"id": 1,
 	"url": "/pages/member/recharge",
-	"img": "/static/images/banner/1.jpg"
+	"img": "https://utility-mini-program.oss-cn-guangzhou.aliyuncs.com/ythsy/1.jpg"
 }, {
 	"id": 2,
 	"url": "/pages/tool/videoRemove",
-	"img": "/static/images/banner/2.jpg"
+	"img": "https://utility-mini-program.oss-cn-guangzhou.aliyuncs.com/ythsy/2.jpg"
 }, {
 	"id": 3,
 	"url": "/pages/filter/filter",
-	"img": "/static/images/banner/3.jpg"
+	"img": "https://utility-mini-program.oss-cn-guangzhou.aliyuncs.com/ythsy/3.jpg"
 }]

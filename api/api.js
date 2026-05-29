@@ -92,6 +92,9 @@ export const apiGetPayHistory = userId => get(`/pay/history/${userId}`);
 // 查询用户vip
 export const apiGetUserVip = () => get('/vip');
 
+// 获取会员价格
+export const apiGetMemberPrice = () => get('/front/member-package/list');
+
 // 非会员每次用功能修改次数
 export const apiModifyMemberNum = data => put('/user/num', data);
 
