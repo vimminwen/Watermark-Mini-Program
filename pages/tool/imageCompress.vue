@@ -1,11 +1,11 @@
 <template>
 	<dark-page-meta />
-	<view class="compress-page">
+	<view class="compress-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @click="chooseImage">
-				<text class="empty-icon">📷</text>
+				<text class="iconfont icon-compress-image empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
-				<text class="empty-desc">支持相册或拍照</text>
+				<text class="empty-desc">选择后自动压缩，支持相册或拍照</text>
 			</view>
 			<view v-else class="preview-wrap">
 				<image
@@ -14,7 +14,7 @@
 					mode="aspectFit"
 				/>
 				<view class="preview-badge">
-					<text v-if="compressing">压缩中...</text>
+					<processing-text v-if="compressing" text="压缩中" />
 					<text v-else-if="compressedSize > 0">
 						{{ formatFileSize(originalSize) }} → {{ formatFileSize(compressedSize) }}
 						<text v-if="savedPercent > 0" class="save-rate">（省 {{ savedPercent }}%）</text>
@@ -33,53 +33,10 @@
 			</view>
 		</view>
 
-		<view v-if="imagePath" class="compress-panel boxBg">
-			<view class="section-label">
-				<view class="label-line line-pink"></view>
-				<text>压缩设置</text>
-			</view>
-
-			<view class="intensity-row">
-				<text class="intensity-label">质量</text>
-				<slider
-					class="intensity-slider"
-					:value="quality"
-					:min="10"
-					:max="100"
-					:step="1"
-					activeColor="#4facfe"
-					backgroundColor="rgba(255,255,255,0.15)"
-					block-color="#00f2fe"
-					:disabled="compressing"
-					@changing="onQualityChanging"
-					@change="onQualityChange"
-				/>
-				<text class="intensity-value">{{ quality }}%</text>
-			</view>
-
-			<view class="intensity-row">
-				<text class="intensity-label">最长边</text>
-				<slider
-					class="intensity-slider"
-					:value="maxSide"
-					:min="640"
-					:max="2560"
-					:step="64"
-					activeColor="#4facfe"
-					backgroundColor="rgba(255,255,255,0.15)"
-					block-color="#00f2fe"
-					:disabled="compressing"
-					@changing="onMaxSideChanging"
-					@change="onMaxSideChange"
-				/>
-				<text class="intensity-value">{{ maxSide }}px</text>
-			</view>
-		</view>
-
 		<view
 			v-if="imagePath && compressedPath"
 			class="save-btn"
-			:class="{ disabled: saving }"
+			:class="{ disabled: saving || compressing }"
 			@click="saveImage"
 		>
 			<text>{{ saving ? '保存中...' : '保存到相册' }}</text>
@@ -93,6 +50,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed, getCurrentInstance } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import {
@@ -107,12 +67,8 @@
 	const compressedPath = ref('')
 	const originalSize = ref(0)
 	const compressedSize = ref(0)
-	const quality = ref(70)
-	const maxSide = ref(1920)
 	const compressing = ref(false)
 	const saving = ref(false)
-
-	let compressTimer = null
 
 	const previewPath = computed(() => compressedPath.value || imagePath.value)
 
@@ -123,8 +79,8 @@
 	})
 
 	const tips = [
-		'选择一张照片，调节「质量」与「最长边」',
-		'预览区会显示压缩前后体积对比',
+		'选择图片后将自动压缩，无需手动设置',
+		'预览区显示压缩前后体积对比',
 		'满意后点击「保存到相册」',
 		'所有处理均在手机本地完成，保护隐私'
 	]
@@ -146,7 +102,7 @@
 				resetState()
 				imagePath.value = path
 				originalSize.value = await getFileSize(path)
-				scheduleCompress()
+				await runCompress()
 			}
 		})
 	}
@@ -156,46 +112,30 @@
 		compressedPath.value = ''
 		originalSize.value = 0
 		compressedSize.value = 0
-		quality.value = 70
-		maxSide.value = 1920
 	}
 
 	const resetAll = () => {
-		if (compressTimer) {
-			clearTimeout(compressTimer)
-			compressTimer = null
-		}
 		resetState()
-	}
-
-	const scheduleCompress = () => {
-		if (compressTimer) clearTimeout(compressTimer)
-		compressTimer = setTimeout(() => {
-			compressTimer = null
-			runCompress()
-		}, 280)
 	}
 
 	const runCompress = async () => {
 		if (!imagePath.value || compressing.value) return
 
 		compressing.value = true
+		compressedPath.value = ''
+		compressedSize.value = 0
+
 		try {
 			const tempPath = await compressImageToTempFile(
 				'#compressCanvas',
 				imagePath.value,
-				{
-					quality: quality.value / 100,
-					maxSide: maxSide.value
-				},
+				{ fileSizeBytes: originalSize.value },
 				instance?.proxy ?? instance
 			)
 			compressedPath.value = tempPath
 			compressedSize.value = await getFileSize(tempPath)
 		} catch (err) {
 			console.error('[runCompress]', err)
-			compressedPath.value = ''
-			compressedSize.value = 0
 			uni.showToast({
 				title: err?.message || '压缩失败，请重试',
 				icon: 'none'
@@ -205,29 +145,9 @@
 		}
 	}
 
-	const onQualityChanging = (e) => {
-		quality.value = e.detail.value
-		scheduleCompress()
-	}
-
-	const onQualityChange = (e) => {
-		quality.value = e.detail.value
-		scheduleCompress()
-	}
-
-	const onMaxSideChanging = (e) => {
-		maxSide.value = e.detail.value
-		scheduleCompress()
-	}
-
-	const onMaxSideChange = (e) => {
-		maxSide.value = e.detail.value
-		scheduleCompress()
-	}
-
 	const saveImage = async () => {
 		const filePath = compressedPath.value
-		if (saving.value || !filePath) return
+		if (saving.value || compressing.value || !filePath) return
 
 		saving.value = true
 		uni.saveImageToPhotosAlbum({
@@ -264,31 +184,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
-	}
-
-	.section-label {
-		display: flex;
-		align-items: center;
-		margin-bottom: 20rpx;
-
-		.label-line {
-			width: 8rpx;
-			height: 32rpx;
-			background: linear-gradient(to bottom, #4facfe, #00f2fe);
-			border-radius: 4rpx;
-			margin-right: 14rpx;
-
-			&.line-pink {
-				background: linear-gradient(to bottom, #fa709a, #fee140);
-			}
-		}
-
-		text {
-			font-size: 30rpx;
-			font-weight: 600;
-			color: #ffffff;
-		}
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.preview-card {
@@ -311,17 +207,21 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -389,42 +289,6 @@
 		}
 	}
 
-	.compress-panel {
-		border-radius: 20rpx;
-		padding: 28rpx;
-		margin-bottom: 24rpx;
-	}
-
-	.intensity-row {
-		display: flex;
-		align-items: center;
-		gap: 16rpx;
-		margin-bottom: 28rpx;
-
-		&:last-child {
-			margin-bottom: 0;
-		}
-
-		.intensity-label {
-			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.7);
-			flex-shrink: 0;
-			width: 100rpx;
-		}
-
-		.intensity-slider {
-			flex: 1;
-		}
-
-		.intensity-value {
-			font-size: 24rpx;
-			color: #4facfe;
-			width: 96rpx;
-			text-align: right;
-			flex-shrink: 0;
-		}
-	}
-
 	.save-btn {
 		background: linear-gradient(to right, #4facfe, #00f2fe);
 		padding: 30rpx;
@@ -439,7 +303,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {

@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="use-page">
+	<view class="use-page" :class="themeClass">
 		<view class="use-layout">
 			<scroll-view class="side-nav" scroll-y :show-scrollbar="false">
 				<view
@@ -23,7 +23,7 @@
 						@click="navigateToTool(item)"
 					>
 						<view class="imgBox">
-							<image :src="item.img" mode="aspectFit"></image>
+							<text class="iconfont tool-icon" :class="item.img"></text>
 						</view>
 						<view class="right">
 							<view class="title">{{ item.title }}</view>
@@ -41,6 +41,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed, onMounted } from 'vue'
 	import dataList from '@/api/data/list.json'
 	import toolCategories from '@/api/data/toolCategories.json'
@@ -83,7 +86,7 @@
 		height: 100vh;
 		box-sizing: border-box;
 		padding-bottom: env(safe-area-inset-bottom);
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.use-layout {
@@ -97,7 +100,7 @@
 		width: 176rpx;
 		height: 100%;
 		background: rgba(0, 0, 0, 0.15);
-		border-right: 1rpx solid rgba(255, 255, 255, 0.08);
+		border-right: 1rpx solid var(--border-color);
 		box-sizing: border-box;
 	}
 
@@ -127,7 +130,7 @@
 			}
 
 			.side-nav-text {
-				color: #ffffff;
+				color: var(--text-primary);
 				font-weight: 600;
 			}
 		}
@@ -141,7 +144,7 @@
 		font-size: 26rpx;
 		line-height: 1.4;
 		text-align: center;
-		color: rgba(255, 255, 255, 0.65);
+		color: var(--text-subtle);
 		word-break: break-all;
 	}
 
@@ -164,7 +167,7 @@
 		align-items: center;
 		justify-content: center;
 		min-height: 400rpx;
-		color: rgba(255, 255, 255, 0.5);
+		color: var(--text-muted);
 		font-size: 28rpx;
 	}
 
@@ -176,7 +179,7 @@
 		padding: 28rpx 24rpx;
 		box-sizing: border-box;
 		border-radius: 20rpx;
-		border: 2rpx rgba(255, 255, 255, 0.2) solid;
+		border: 2rpx var(--border-color) solid;
 		transition: all 0.3s ease;
 		animation: fadeIn 0.4s ease forwards;
 		opacity: 0;
@@ -189,9 +192,12 @@
 			flex-shrink: 0;
 			margin-right: 20rpx;
 
-			image {
-				width: 80rpx;
-				height: 80rpx;
+			.tool-icon {
+				font-size: 60rpx;
+				background: linear-gradient(to bottom, #aa2267, #fe764e);
+				-webkit-background-clip: text;
+				-webkit-text-fill-color: transparent;
+				background-clip: text;
 			}
 		}
 
@@ -204,7 +210,7 @@
 				font-size: 28rpx;
 				font-weight: 600;
 				padding: 4rpx 0;
-				color: #ffffff;
+				color: var(--text-primary);
 				white-space: nowrap;
 				text-overflow: ellipsis;
 				overflow: hidden;
@@ -213,7 +219,7 @@
 			.content {
 				font-size: 24rpx;
 				padding: 4rpx 0;
-				color: rgba(255, 255, 255, 0.7);
+				color: var(--text-secondary);
 				display: -webkit-box;
 				-webkit-box-orient: vertical;
 				-webkit-line-clamp: 2;

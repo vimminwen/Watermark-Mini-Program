@@ -20,212 +20,182 @@
 		{
 			"path": "pages/my/settings",
 			"style": {
-				"navigationBarTitleText": "设置",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "设置"
 			}
 		},
 		{
 			"path": "pages/my/about",
 			"style": {
-				"navigationBarTitleText": "关于我们",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "关于我们"
 			}
 		},
 		{
 			"path": "pages/my/contact",
 			"style": {
-				"navigationBarTitleText": "联系客服",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "联系客服"
 			}
 		},
 		{
 			"path": "pages/my/agreement",
 			"style": {
-				"navigationBarTitleText": "用户协议",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "用户协议"
 			}
 		},
 		{
 			"path": "pages/my/privacy",
 			"style": {
-				"navigationBarTitleText": "隐私政策",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "隐私政策"
 			}
 		},
 		{
 			"path": "pages/my/faq",
 			"style": {
-				"navigationBarTitleText": "常见问题",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "常见问题"
 			}
 		},
 		{
 			"path": "pages/my/wechat",
 			"style": {
-				"navigationBarTitleText": "关注公众号",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "关注公众号"
 			}
 		},
 		{
 			"path": "pages/member/recharge",
 			"style": {
-				"navigationBarTitleText": "会员充值",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "会员充值"
 			}
 		},
 		{
 			"path": "pages/member/cancel",
 			"style": {
-				"navigationBarTitleText": "会员退订",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "会员退订"
 			}
 		},
 		{
 			"path": "pages/user/login",
 			"style": {
-				"navigationBarTitleText": "登录",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "登录"
 			}
 		},
 		{
 			"path": "pages/user/register",
 			"style": {
-				"navigationBarTitleText": "注册账号",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "注册账号"
 			}
 		},
 		{
 			"path": "pages/user/forgetPassword",
 			"style": {
-				"navigationBarTitleText": "忘记密码",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "忘记密码"
 			}
 		},
 		{
 			"path": "pages/user/userCenter",
 			"style": {
-				"navigationBarTitleText": "个人中心",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "个人中心"
 			}
 		},
 		{
 			"path": "pages/user/modifyPassword",
 			"style": {
-				"navigationBarTitleText": "修改密码",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "修改密码"
 			}
 		},
 		{
 			"path": "pages/member/orders",
 			"style": {
 				"navigationBarTitleText": "支付订单",
-				"navigationBarBackgroundColor": "#050d40",
 				"enablePullDownRefresh": true
 			}
 		},
 		{
 			"path": "pages/tool/tool",
 			"style": {
-				"navigationBarTitleText": "无损放大",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "无损放大"
 			}
 		},
 		{
 			"path": "pages/tool/feature",
 			"style": {
-				"navigationBarTitleText": "功能",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "功能"
 			}
 		},
 		{
 			"path": "pages/tool/imageEdit",
 			"style": {
-				"navigationBarTitleText": "图片编辑",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "图片编辑"
 			}
 		},
 		{
 			"path": "pages/tool/styleTransfer",
 			"style": {
-				"navigationBarTitleText": "风格转换",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "风格转换"
 			}
 		},
 		{
 			"path": "pages/tool/cutout",
 			"style": {
-				"navigationBarTitleText": "智能抠图",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "智能抠图"
 			}
 		},
 		{
 			"path": "pages/tool/smartErase",
 			"style": {
-				"navigationBarTitleText": "智能消除笔",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "智能消除笔"
 			}
 		},
 		{
 			"path": "pages/tool/imageCompress",
 			"style": {
-				"navigationBarTitleText": "图片压缩",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "图片压缩"
 			}
 		},
 		{
 			"path": "pages/tool/imageTextExtract",
 			"style": {
-				"navigationBarTitleText": "图片提取文字",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "图片提取文字"
 			}
 		},
 		{
 			"path": "pages/tool/videoTextExtract",
 			"style": {
-				"navigationBarTitleText": "视频转文字",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "视频转文字"
 			}
 		},
 		{
 			"path": "pages/tool/audioTextExtract",
 			"style": {
-				"navigationBarTitleText": "音频转文字",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "音频转文字"
 			}
 		},
 		{
 			"path": "pages/tool/imageCrop",
 			"style": {
-				"navigationBarTitleText": "图片剪切",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "图片剪切"
 			}
 		},
 		{
 			"path": "pages/tool/videoRemove",
 			"style": {
-				"navigationBarTitleText": "视频消除",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "视频消除"
 			}
 		},
 		{
 			"path": "pages/videoParsing/videoParsing",
 			"style": {
-				"navigationBarTitleText": "视频解析",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "视频解析"
 			}
 		},
 		{
 			"path": "pages/filter/filter",
 			"style": {
-				"navigationBarTitleText": "滤镜",
-				"navigationBarBackgroundColor": "#050d40"
+				"navigationBarTitleText": "滤镜"
 			}
 		}
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
 		"navigationBarTitleText": "云途汇水印",
-		"navigationBarBackgroundColor": "#050d40",
 		"backgroundColor": "#050d40",
 		"backgroundColorContent": "#050d40",
 		"backgroundColorTop": "#050d40",

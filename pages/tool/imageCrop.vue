@@ -1,13 +1,13 @@
 <template>
 	<dark-page-meta />
-	<view class="crop-page">
+	<view class="crop-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @click="chooseImage">
-				<text class="empty-icon">📷</text>
+				<text class="iconfont icon-jianqie empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
 				<text class="empty-desc">支持相册或拍照</text>
 			</view>
-			<view v-else class="crop-stage" id="cropStage">
+			<view v-else-if="viewMode === 'crop'" class="crop-stage" id="cropStage">
 				<image
 					class="crop-image"
 					:src="imagePath"
@@ -18,9 +18,6 @@
 					v-if="stageReady"
 					class="crop-box"
 					:style="cropBoxStyle"
-					@touchstart.stop="onCropTouchStart"
-					@touchmove.stop.prevent="onCropTouchMove"
-					@touchend.stop="onCropTouchEnd"
 				>
 					<view class="crop-grid">
 						<view class="grid-line h1"></view>
@@ -28,6 +25,31 @@
 						<view class="grid-line v1"></view>
 						<view class="grid-line v2"></view>
 					</view>
+					<view
+						class="crop-box-body"
+						@touchstart.stop="onCropTouchStart"
+						@touchmove.stop.prevent="onCropTouchMove"
+						@touchend.stop="onCropTouchEnd"
+						@touchcancel.stop="onCropTouchEnd"
+					/>
+					<template v-if="isFreeCrop">
+						<view
+							v-for="handle in resizeHandles"
+							:key="handle"
+							class="resize-handle"
+							:class="'resize-handle--' + handle"
+							@touchstart.stop="onHandleTouchStart(handle, $event)"
+							@touchmove.stop.prevent="onCropTouchMove"
+							@touchend.stop="onCropTouchEnd"
+							@touchcancel.stop="onCropTouchEnd"
+						/>
+					</template>
+				</view>
+			</view>
+			<view v-else class="result-stage" @click="previewCropped">
+				<image class="result-image" :src="croppedPath" mode="aspectFit" />
+				<view class="preview-hint">
+					<text>点击预览</text>
 				</view>
 			</view>
 		</view>
@@ -41,7 +63,7 @@
 			</view>
 		</view>
 
-		<view v-if="imagePath" class="crop-panel boxBg">
+		<view v-if="imagePath && viewMode === 'crop'" class="crop-panel boxBg">
 			<view class="section-label">
 				<view class="label-line line-pink"></view>
 				<text>裁剪比例</text>
@@ -60,12 +82,29 @@
 		</view>
 
 		<view
-			v-if="imagePath && stageReady"
-			class="save-btn"
-			:class="{ disabled: saving }"
-			@click="saveImage"
+			v-if="imagePath && viewMode === 'crop' && stageReady"
+			class="primary-btn"
+			:class="{ disabled: cropping }"
+			@click="startCrop"
 		>
-			<text>{{ saving ? '保存中...' : '保存到相册' }}</text>
+			<processing-text
+				:active="cropping"
+				text="裁剪中"
+				idle-text="开始裁剪"
+			/>
+		</view>
+
+		<view v-if="imagePath && viewMode === 'preview'" class="result-actions">
+			<view class="secondary-btn" @click="restartCrop">
+				<text>重新开始</text>
+			</view>
+			<view
+				class="primary-btn"
+				:class="{ disabled: saving }"
+				@click="saveImage"
+			>
+				<text>{{ saving ? '保存中...' : '保存到相册' }}</text>
+			</view>
 		</view>
 
 		<tool-tips-card :tips="tips" />
@@ -76,6 +115,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed, reactive, getCurrentInstance, nextTick } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import {
@@ -83,12 +125,15 @@
 		calcAspectFitRect,
 		clampNormCrop,
 		createNormCropForAspect,
-		exportCroppedImage
+		exportCroppedImage,
+		applyCropResize
 	} from '@/utils/image/imageCrop.js'
 
 	const instance = getCurrentInstance()
 
 	const imagePath = ref('')
+	const croppedPath = ref('')
+	const viewMode = ref('crop')
 	const naturalWidth = ref(0)
 	const naturalHeight = ref(0)
 	const stageRect = ref({ width: 0, height: 0 })
@@ -96,20 +141,24 @@
 	const stageReady = ref(false)
 	const activeAspectId = ref('free')
 	const activeRatio = ref(0)
+	const cropping = ref(false)
 	const saving = ref(false)
 
 	const normCrop = reactive({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 })
 
 	const aspectPresets = CROP_ASPECT_PRESETS
+	const resizeHandles = ['tl', 'tr', 'bl', 'br']
 
 	let touchSnapshot = null
 
 	const tips = [
-		'选择图片后，拖动方框调整裁剪区域',
-		'点击比例可切换 1:1、4:3、16:9 等常用尺寸',
-		'「自由」模式下可任意比例拖动位置',
+		'选择图片后，拖动方框移动裁剪区域',
+		'「自由」模式下可拖动四角调整裁剪框大小',
+		'点击「开始裁剪」预览效果，满意后再保存到相册',
 		'所有处理均在手机本地完成，保护隐私'
 	]
+
+	const isFreeCrop = computed(() => activeRatio.value === 0)
 
 	const cropBoxStyle = computed(() => {
 		const d = displayRect.value
@@ -144,13 +193,61 @@
 
 	const resetAll = () => {
 		imagePath.value = ''
+		croppedPath.value = ''
+		viewMode.value = 'crop'
 		naturalWidth.value = 0
 		naturalHeight.value = 0
 		stageReady.value = false
 		activeAspectId.value = 'free'
 		activeRatio.value = 0
+		cropping.value = false
+		saving.value = false
 		Object.assign(normCrop, createNormCropForAspect(0))
 		touchSnapshot = null
+	}
+
+	const restartCrop = () => {
+		croppedPath.value = ''
+		viewMode.value = 'crop'
+		cropping.value = false
+		touchSnapshot = null
+		nextTick(() => measureStage())
+	}
+
+	const previewCropped = () => {
+		if (!croppedPath.value) return
+		uni.previewImage({
+			urls: [croppedPath.value],
+			current: croppedPath.value
+		})
+	}
+
+	const startCrop = async () => {
+		if (cropping.value || !imagePath.value || !stageReady.value) return
+
+		cropping.value = true
+		uni.showLoading({ title: '裁剪中...', mask: true })
+
+		try {
+			const tempPath = await exportCroppedImage(
+				'#cropCanvas',
+				imagePath.value,
+				{ ...normCrop },
+				instance?.proxy ?? instance
+			)
+			croppedPath.value = tempPath
+			viewMode.value = 'preview'
+			stageReady.value = false
+		} catch (err) {
+			console.error('[startCrop]', err)
+			uni.showToast({
+				title: err?.message || '裁剪失败，请重试',
+				icon: 'none'
+			})
+		} finally {
+			cropping.value = false
+			uni.hideLoading()
+		}
 	}
 
 	const onImageLoad = (e) => {
@@ -196,10 +293,29 @@
 		const touch = e.touches?.[0]
 		if (!touch) return
 		touchSnapshot = {
+			mode: 'move',
 			clientX: touch.clientX,
 			clientY: touch.clientY,
-			cropX: normCrop.x,
-			cropY: normCrop.y
+			regionX: normCrop.x,
+			regionY: normCrop.y,
+			regionW: normCrop.w,
+			regionH: normCrop.h
+		}
+	}
+
+	const onHandleTouchStart = (handle, e) => {
+		if (!isFreeCrop.value) return
+		const touch = e.touches?.[0]
+		if (!touch) return
+		touchSnapshot = {
+			mode: 'resize',
+			handle,
+			clientX: touch.clientX,
+			clientY: touch.clientY,
+			regionX: normCrop.x,
+			regionY: normCrop.y,
+			regionW: normCrop.w,
+			regionH: normCrop.h
 		}
 	}
 
@@ -207,13 +323,26 @@
 		if (!touchSnapshot || !displayRect.value.w) return
 		const touch = e.touches?.[0]
 		if (!touch) return
-		const dx = touch.clientX - touchSnapshot.clientX
-		const dy = touch.clientY - touchSnapshot.clientY
-		normCrop.x = touchSnapshot.cropX + dx / displayRect.value.w
-		normCrop.y = touchSnapshot.cropY + dy / displayRect.value.h
-		const clamped = clampNormCrop(normCrop)
-		normCrop.x = clamped.x
-		normCrop.y = clamped.y
+
+		if (touchSnapshot.mode === 'resize' && !isFreeCrop.value) return
+
+		const dx = (touch.clientX - touchSnapshot.clientX) / displayRect.value.w
+		const dy = (touch.clientY - touchSnapshot.clientY) / displayRect.value.h
+
+		if (touchSnapshot.mode === 'move') {
+			Object.assign(
+				normCrop,
+				clampNormCrop({
+					x: touchSnapshot.regionX + dx,
+					y: touchSnapshot.regionY + dy,
+					w: touchSnapshot.regionW,
+					h: touchSnapshot.regionH
+				})
+			)
+			return
+		}
+
+		Object.assign(normCrop, applyCropResize(touchSnapshot, dx, dy))
 	}
 
 	const onCropTouchEnd = () => {
@@ -221,47 +350,35 @@
 	}
 
 	const saveImage = async () => {
-		if (saving.value || !imagePath.value) return
+		if (saving.value || !croppedPath.value) return
 
 		saving.value = true
-		uni.showLoading({ title: '裁剪中...', mask: true })
+		uni.showLoading({ title: '保存中...', mask: true })
 
 		try {
-			const tempPath = await exportCroppedImage(
-				'#cropCanvas',
-				imagePath.value,
-				{ ...normCrop },
-				instance?.proxy ?? instance
-			)
-
-			uni.saveImageToPhotosAlbum({
-				filePath: tempPath,
-				success: () => {
-					uni.showToast({ title: '已保存到相册', icon: 'success' })
-				},
-				fail: (err) => {
-					console.error('[saveImage]', err)
-					const denied = /auth deny|authorize|permission/i.test(err?.errMsg || '')
-					if (denied) {
-						uni.showModal({
-							title: '需要相册权限',
-							content: '请在设置中允许保存到相册',
-							confirmText: '去设置',
-							success: (res) => {
-								if (res.confirm) uni.openSetting()
-							}
-						})
-					} else {
-						uni.showToast({ title: '保存失败', icon: 'none' })
-					}
-				}
+			await new Promise((resolve, reject) => {
+				uni.saveImageToPhotosAlbum({
+					filePath: croppedPath.value,
+					success: resolve,
+					fail: reject
+				})
 			})
+			uni.showToast({ title: '已保存到相册', icon: 'success' })
 		} catch (err) {
 			console.error('[saveImage]', err)
-			uni.showToast({
-				title: err?.message || '裁剪失败，请重试',
-				icon: 'none'
-			})
+			const denied = /auth deny|authorize|permission/i.test(err?.errMsg || '')
+			if (denied) {
+				uni.showModal({
+					title: '需要相册权限',
+					content: '请在设置中允许保存到相册',
+					confirmText: '去设置',
+					success: (res) => {
+						if (res.confirm) uni.openSetting()
+					}
+				})
+			} else {
+				uni.showToast({ title: '保存失败', icon: 'none' })
+			}
 		} finally {
 			saving.value = false
 			uni.hideLoading()
@@ -275,7 +392,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.section-label {
@@ -298,7 +415,7 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -320,25 +437,61 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
-	.crop-stage {
+	.crop-stage,
+	.result-stage {
 		position: relative;
 		width: 100%;
 		height: 480rpx;
 		overflow: hidden;
+	}
+
+	.result-stage {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(0, 0, 0, 0.15);
+
+		&:active {
+			opacity: 0.92;
+		}
+	}
+
+	.result-image {
+		width: 100%;
+		height: 100%;
+	}
+
+	.preview-hint {
+		position: absolute;
+		left: 50%;
+		bottom: 24rpx;
+		transform: translateX(-50%);
+		padding: 10rpx 28rpx;
+		border-radius: 24rpx;
+		background: rgba(0, 0, 0, 0.45);
+
+		text {
+			font-size: 24rpx;
+			color: #ffffff;
+		}
 	}
 
 	.crop-image {
@@ -354,14 +507,52 @@
 		z-index: 2;
 	}
 
+	.crop-box-body {
+		position: absolute;
+		inset: 0;
+		z-index: 1;
+	}
+
+	.resize-handle {
+		position: absolute;
+		width: 36rpx;
+		height: 36rpx;
+		background: #4facfe;
+		border: 3rpx solid #ffffff;
+		border-radius: 50%;
+		box-sizing: border-box;
+		z-index: 3;
+
+		&--tl {
+			left: -18rpx;
+			top: -18rpx;
+		}
+
+		&--tr {
+			right: -18rpx;
+			top: -18rpx;
+		}
+
+		&--bl {
+			left: -18rpx;
+			bottom: -18rpx;
+		}
+
+		&--br {
+			right: -18rpx;
+			bottom: -18rpx;
+		}
+	}
+
 	.crop-grid {
 		position: absolute;
 		inset: 0;
 		pointer-events: none;
+		z-index: 0;
 
 		.grid-line {
 			position: absolute;
-			background: rgba(255, 255, 255, 0.35);
+			background: var(--surface-bg-strong);
 
 			&.h1 {
 				left: 0;
@@ -444,12 +635,12 @@
 		padding: 16rpx 32rpx;
 		margin-right: 16rpx;
 		border-radius: 32rpx;
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--surface-bg);
 		border: 2rpx solid transparent;
 
 		text {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.75);
+			color: var(--text-secondary);
 		}
 
 		&.active {
@@ -467,12 +658,18 @@
 		}
 	}
 
-	.save-btn {
-		background: linear-gradient(to right, #4facfe, #00f2fe);
+	.result-actions {
+		display: flex;
+		gap: 20rpx;
+		margin-bottom: 24rpx;
+	}
+
+	.primary-btn,
+	.secondary-btn {
+		flex: 1;
 		padding: 30rpx;
 		border-radius: 50rpx;
 		text-align: center;
-		margin-bottom: 24rpx;
 
 		&.disabled {
 			opacity: 0.7;
@@ -481,12 +678,33 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
 		}
 
 		&:active:not(.disabled) {
 			opacity: 0.9;
 			transform: scale(0.98);
+		}
+	}
+
+	.primary-btn {
+		background: linear-gradient(to right, #4facfe, #00f2fe);
+		margin-bottom: 24rpx;
+
+		text {
+			color: var(--text-primary);
+		}
+	}
+
+	.result-actions .primary-btn {
+		margin-bottom: 0;
+	}
+
+	.secondary-btn {
+		background: var(--surface-bg);
+		border: 2rpx solid var(--border-color);
+
+		text {
+			color: var(--text-secondary);
 		}
 	}
 

@@ -1,9 +1,9 @@
 <template>
 	<dark-page-meta />
-	<view class="zoom-page">
+	<view class="zoom-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @tap="chooseImage">
-				<text class="empty-icon">📷</text>
+				<text class="iconfont icon-fangda- empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
 				<text class="empty-desc">支持 JPG / PNG，建议小于 5MB</text>
 			</view>
@@ -11,10 +11,15 @@
 				<image class="preview-image" :src="displayImage" mode="aspectFit" />
 				<view class="size-badge">
 					<text v-if="resultPath && resultSize.width">
-						放大完成 {{ resultSize.width }} × {{ resultSize.height }} · 点击预览
+						放大完成 {{ resultSize.width }} × {{ resultSize.height }}
+						<text v-if="scale !== 1">（{{ scale }}×）</text>
+						· 点击预览
 					</text>
 					<text v-else-if="originSize.width">
 						{{ originSize.width }} × {{ originSize.height }}
+						<text v-if="scale !== 1">
+							 → {{ selectedOutputSize.width }} × {{ selectedOutputSize.height }}
+						</text>
 					</text>
 				</view>
 			</view>
@@ -22,7 +27,7 @@
 
 		<view class="toolbar">
 			<view class="tool-chip" @tap="chooseImage">
-				<text>{{ imagePath ? '🔄 换一张' : '📁 选择图片' }}</text>
+				<text>{{ imagePath ? ' 换一张' : ' 选择图片' }}</text>
 			</view>
 			<view v-if="imagePath" class="tool-chip danger" @tap="resetAll">
 				<text>清空</text>
@@ -39,12 +44,12 @@
 					v-for="item in scaleOptions"
 					:key="item.value"
 					class="scale-chip"
-					:class="{ active: scale === item.value }"
-					@tap="scale = item.value"
+					:class="{ active: scale === item.value, disabled: processing }"
+					@tap="selectScale(item.value)"
 				>
 					<text class="scale-label">{{ item.label }}</text>
 					<text v-if="originSize.width" class="scale-hint">
-						→ {{ originSize.width * item.value }}×{{ originSize.height * item.value }}
+						→ {{ getScaleOutputSize(item.value).width }}×{{ getScaleOutputSize(item.value).height }}
 					</text>
 				</view>
 			</view>
@@ -52,9 +57,13 @@
 			<view
 				class="process-btn"
 				:class="{ disabled: processing }"
-				@tap="handleUpscale"
+				@tap="onProcessTap"
 			>
-				<text>{{ processing ? '放大中...' : (resultPath ? '重新放大' : '开始放大') }}</text>
+				<processing-text
+					:active="processing"
+					text="放大中"
+					:idle-text="resultPath ? '重新放大' : '开始放大'"
+				/>
 			</view>
 			<view
 				v-if="resultPath"
@@ -67,36 +76,45 @@
 		</view>
 
 		<tool-tips-card :tips="tips" />
+		<canvas type="2d" id="upscaleCanvas" class="export-canvas" />
+		<!-- 上传日志（调试时取消注释）
 		<debug-log-panel
 			:logs="debugLogs"
 			:scroll-top="debugScrollTop"
 			@clear="clearDebugLogs"
 		/>
+		-->
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
-	import { ref, computed } from 'vue'
-	import { onLoad } from '@dcloudio/uni-app'
-	import { apiImageLosslessZoomSubmit, apiGetAiLog } from '@/api/api.js'
-	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
-	import { checkLogin } from '@/utils/user/auth.js'
-	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
-	import { extractAiLogId, pollAiLogResult, resolveAiLogResultUrl } from '@/utils/ai/aiLog.js'
-	import { buildLosslessZoomPayload, ZOOM_SCALE_OPTIONS } from '@/utils/image/losslessZoom.js'
-	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
-	import { baseUrl } from '@/utils/http.js'
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
 
-	const {
-		debugLogs,
-		debugScrollTop,
-		clearDebugLogs,
-		logInfo,
-		logStep,
-		logOk,
-		showDebugError
-	} = useDebugLog('losslessZoom')
+	const { themeClass } = usePageTheme()
+	import { ref, computed, getCurrentInstance } from 'vue'
+	import { onLoad } from '@dcloudio/uni-app'
+	// import { apiImageLosslessZoomSubmit, apiGetAiLog } from '@/api/api.js'
+	// import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
+	// import { checkLogin } from '@/utils/user/auth.js'
+	// import { uploadImageToOss } from '@/utils/image/ossUpload.js'
+	// import { extractAiLogId, pollAiLogResult, resolveAiLogResultUrl } from '@/utils/ai/aiLog.js'
+	// import { buildLosslessZoomPayload } from '@/utils/image/losslessZoom.js'
+	// import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
+	// import { baseUrl } from '@/utils/http.js'
+	import { UPSCALE_OPTIONS, upscaleImageLocal, computeUpscaleOutputSize } from '@/utils/image/imageUpscale.js'
+
+	const instance = getCurrentInstance()
+
+	// const {
+	// 	debugLogs,
+	// 	debugScrollTop,
+	// 	clearDebugLogs,
+	// 	logInfo,
+	// 	logStep,
+	// 	logOk,
+	// 	showDebugError
+	// } = useDebugLog('losslessZoom')
 
 	const imagePath = ref('')
 	const resultPath = ref('')
@@ -106,15 +124,22 @@
 	const originSize = ref({ width: 0, height: 0 })
 	const resultSize = ref({ width: 0, height: 0 })
 
-	const scaleOptions = ZOOM_SCALE_OPTIONS
+	const scaleOptions = UPSCALE_OPTIONS
 
 	const displayImage = computed(() => resultPath.value || imagePath.value)
 
+	const selectedOutputSize = computed(() =>
+		computeUpscaleOutputSize(originSize.value.width, originSize.value.height, scale.value)
+	)
+
+	const getScaleOutputSize = (scaleValue) =>
+		computeUpscaleOutputSize(originSize.value.width, originSize.value.height, scaleValue)
+
 	const tips = [
 		'选择需要放大的照片，推荐原图边长不超过 2000px',
-		'选择 2 / 3 / 4 倍放大后点击「开始放大」',
-		'放大完成后在原图位置查看高清效果',
-		'满意后保存到相册；处理过程需登录账号'
+		'支持 1× ~ 8× 多种倍数，在手机本地完成放大',
+		'输出最长边超过 4096px 时会自动限制，选项尺寸即为实际输出',
+		'满意后保存到相册；所有处理均在本地完成，保护隐私'
 	]
 
 	onLoad((options) => {
@@ -184,14 +209,31 @@
 			})
 		})
 
-	const setResultFromPath = (path) => {
+	const setResultFromPath = (path, size = null) => {
 		resultPath.value = path
+		if (size?.width && size?.height) {
+			resultSize.value = { width: size.width, height: size.height }
+			return
+		}
 		uni.getImageInfo({
 			src: path,
 			success: (info) => {
 				resultSize.value = { width: info.width, height: info.height }
 			}
 		})
+	}
+
+	const clearResult = () => {
+		resultPath.value = ''
+		resultSize.value = { width: 0, height: 0 }
+	}
+
+	const selectScale = (value) => {
+		if (processing.value) return
+		scale.value = value
+		if (resultPath.value) {
+			clearResult()
+		}
 	}
 
 	const onPreviewTap = () => {
@@ -202,13 +244,44 @@
 		})
 	}
 
+	const onProcessTap = () => {
+		if (processing.value) return
+		if (resultPath.value) {
+			clearResult()
+			return
+		}
+		handleUpscale()
+	}
+
 	const handleUpscale = async () => {
 		if (processing.value || !imagePath.value) return
+
+		const upscaleScale = scale.value
+		processing.value = true
+		clearResult()
+
+		try {
+			const { tempPath, width, height } = await upscaleImageLocal(
+				'#upscaleCanvas',
+				imagePath.value,
+				upscaleScale,
+				instance?.proxy ?? instance
+			)
+			setResultFromPath(tempPath, { width, height })
+			uni.showToast({ title: '放大完成', icon: 'success' })
+		} catch (err) {
+			console.error('[handleUpscale]', err)
+			uni.showToast({
+				title: err?.message || '放大失败，请换一张图片重试',
+				icon: 'none'
+			})
+		} finally {
+			processing.value = false
+		}
+
+		/* 后端接口放大（已停用，恢复时取消注释并移除上方本地放大逻辑）
 		if (!checkLogin()) return
 
-		processing.value = true
-		resultPath.value = ''
-		resultSize.value = { width: 0, height: 0 }
 		logInfo(`API 根地址: ${baseUrl}`)
 		logStep('1/4 上传图片到 OSS')
 		showTaskLoading({ title: '上传图片...', mask: true })
@@ -216,10 +289,10 @@
 		try {
 			const ossUrl = await uploadImageToOss(imagePath.value)
 			logOk(`OSS 上传成功\n${ossUrl}`)
-			logStep(`2/4 提交放大任务 (${scale.value}x)`)
-			showTaskLoading({ title: 'AI 放大中...', mask: true })
+			logStep(`2/4 提交放大任务 (${upscaleScale}x)`)
+			showTaskLoading({ title: '放大中...', mask: true })
 
-			const payload = buildLosslessZoomPayload(ossUrl, scale.value)
+			const payload = buildLosslessZoomPayload(ossUrl, upscaleScale)
 			const res = await apiImageLosslessZoomSubmit(payload)
 			const body = res?.data
 			if (!isApiSuccess(body)) {
@@ -237,7 +310,7 @@
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
 					onProgress: (attempt, maxAttempts) => {
 						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
-						showTaskLoading({ title: 'AI 放大中...', mask: true })
+						showTaskLoading({ title: '放大中...', mask: true })
 					}
 				})
 				logOk(`任务完成\n${resultUrl}`)
@@ -258,6 +331,7 @@
 			processing.value = false
 			hideTaskLoading()
 		}
+		*/
 	}
 
 	const saveImage = () => {
@@ -297,7 +371,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.preview-card {
@@ -324,17 +398,21 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -424,37 +502,40 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
 	.scale-options {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 16rpx;
 		margin-bottom: 24rpx;
 	}
 
 	.scale-chip {
-		flex: 1;
+		width: calc(25% - 12rpx);
+		box-sizing: border-box;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		padding: 20rpx 12rpx;
+		padding: 18rpx 8rpx;
 		border-radius: 16rpx;
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--surface-bg);
 		border: 2rpx solid transparent;
 
 		.scale-label {
-			font-size: 30rpx;
+			font-size: 26rpx;
 			font-weight: 600;
-			color: rgba(255, 255, 255, 0.75);
+			color: var(--text-secondary);
 		}
 
 		.scale-hint {
-			font-size: 22rpx;
-			color: rgba(255, 255, 255, 0.45);
-			margin-top: 8rpx;
+			font-size: 20rpx;
+			color: var(--text-muted);
+			margin-top: 6rpx;
 			text-align: center;
+			line-height: 1.3;
 		}
 
 		&.active {
@@ -466,12 +547,17 @@
 			}
 
 			.scale-hint {
-				color: rgba(79, 172, 254, 0.8);
+				color: var(--text-muted);
 			}
 		}
 
 		&:active {
 			opacity: 0.85;
+		}
+
+		&.disabled {
+			opacity: 0.45;
+			pointer-events: none;
 		}
 	}
 
@@ -488,7 +574,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {
@@ -518,5 +604,15 @@
 		&:active:not(.disabled) {
 			opacity: 0.85;
 		}
+	}
+
+	.export-canvas {
+		position: fixed;
+		left: -9999px;
+		top: -9999px;
+		width: 300px;
+		height: 300px;
+		opacity: 0;
+		pointer-events: none;
 	}
 </style>

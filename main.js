@@ -17,6 +17,7 @@ import DarkPageMeta from '@/components/common/DarkPageMeta.vue'
 import SafeAreaBottom from '@/components/common/SafeAreaBottom.vue'
 import ToolTipsCard from '@/components/common/ToolTipsCard.vue'
 import DebugLogPanel from '@/components/common/DebugLogPanel.vue'
+import ProcessingText from '@/components/common/ProcessingText.vue'
 import PhoneQuickLoginButton from '@/components/user/PhoneQuickLoginButton.vue'
 
 export function createApp() {
@@ -25,6 +26,7 @@ export function createApp() {
   app.component('safe-area-bottom', SafeAreaBottom)
   app.component('tool-tips-card', ToolTipsCard)
   app.component('debug-log-panel', DebugLogPanel)
+  app.component('processing-text', ProcessingText)
   app.component('phone-quick-login-btn', PhoneQuickLoginButton)
   return {
     app

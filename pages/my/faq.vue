@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="sub-page">
+	<view class="sub-page" :class="themeClass">
 		<view class="faq-content">
 			<view class="faq-item boxBg" v-for="(item, index) in faqList" :key="index">
 				<view class="faq-question" @click="toggleFaq(index)">
@@ -18,6 +18,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 
 	const expandedIndex = ref(-1)
@@ -47,11 +50,6 @@
 			icon: '💾',
 			question: '如何清除缓存？',
 			answer: '在设置页面点击"清除缓存"按钮即可清除应用缓存。建议定期清理以释放存储空间。'
-		},
-		{
-			icon: '🔄',
-			question: '如何更新应用？',
-			answer: '在设置页面点击"检查更新"，如有新版本会提示您进行更新。也可以在应用商店中自动更新。'
 		}
 	]
 
@@ -63,7 +61,7 @@
 <style lang="scss">
 	.sub-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 30rpx;
 		padding-bottom: 120rpx;
 	}
@@ -86,7 +84,7 @@
 		transition: all 0.3s ease;
 		
 		&:active {
-			background: rgba(255, 255, 255, 0.1);
+			background: var(--surface-bg);
 		}
 		
 		.question-icon {
@@ -97,12 +95,12 @@
 		.question-text {
 			flex: 1;
 			font-size: 28rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 		
 		.question-arrow {
 			font-size: 20rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 			transition: transform 0.3s ease;
 			transform: rotate(0deg);
 			
@@ -118,7 +116,7 @@
 		
 		.answer-text {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.8);
+			color: var(--text-soft);
 			line-height: 1.6;
 		}
 	}

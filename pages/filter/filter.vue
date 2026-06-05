@@ -1,7 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="filter-page">
-		<!-- 预览区 -->
+	<view class="filter-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @click="chooseImage">
 				<text class="empty-icon">📷</text>
@@ -21,7 +20,6 @@
 			</view>
 		</view>
 
-		<!-- 选图 / 换图 -->
 		<view class="toolbar">
 			<view class="tool-chip" @click="chooseImage">
 				<text>{{ imagePath ? '🔄 换一张' : '📁 选择图片' }}</text>
@@ -31,7 +29,6 @@
 			</view>
 		</view>
 
-		<!-- 滤镜列表 -->
 		<view v-if="imagePath" class="filter-panel boxBg">
 			<view class="section-label">
 				<view class="label-line line-pink"></view>
@@ -50,14 +47,14 @@
 							class="filter-thumb"
 							:src="imagePath"
 							mode="aspectFill"
-							:style="{ filter: item.css }"
+							:style="{ filter: buildFilterCss(item, 100) }"
 						/>
 					</view>
 					<text class="filter-name">{{ item.name }}</text>
 				</view>
 			</scroll-view>
 
-			<view class="intensity-row">
+			<view v-if="activeFilterId !== 'original'" class="intensity-row">
 				<text class="intensity-label">强度</text>
 				<slider
 					class="intensity-slider"
@@ -75,7 +72,6 @@
 			</view>
 		</view>
 
-		<!-- 保存 -->
 		<view
 			v-if="imagePath"
 			class="save-btn"
@@ -97,15 +93,18 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed, getCurrentInstance } from 'vue'
-	import { FILTER_PRESETS, getFilterById, buildFilterCss } from '@/utils/image/filters.js'
+	import { FILTER_PRESETS, FILTER_DEFAULT_INTENSITY, getFilterById, buildFilterCss, buildFilterEffects } from '@/utils/image/filters.js'
 	import { exportImageWithFilter } from '@/utils/image/canvasFilter.js'
 
 	const instance = getCurrentInstance()
 
 	const imagePath = ref('')
 	const activeFilterId = ref('original')
-	const intensity = ref(100)
+	const intensity = ref(FILTER_DEFAULT_INTENSITY)
 	const saving = ref(false)
 
 	const filterPresets = FILTER_PRESETS
@@ -118,7 +117,7 @@
 
 	const tips = [
 		'选择一张照片，左右滑动挑选滤镜',
-		'拖动「强度」滑块可调节滤镜浓淡',
+		'拖动「强度」：0% 接近原图，100% 为完整滤镜，全程可感知变化',
 		'满意后点击「保存到相册」',
 		'所有处理均在手机本地完成，保护隐私'
 	]
@@ -133,7 +132,7 @@
 				if (path) {
 					imagePath.value = path
 					activeFilterId.value = 'original'
-					intensity.value = 100
+					intensity.value = FILTER_DEFAULT_INTENSITY
 				}
 			}
 		})
@@ -142,11 +141,14 @@
 	const resetAll = () => {
 		imagePath.value = ''
 		activeFilterId.value = 'original'
-		intensity.value = 100
+		intensity.value = FILTER_DEFAULT_INTENSITY
 	}
 
 	const selectFilter = (id) => {
 		activeFilterId.value = id
+		if (id !== 'original') {
+			intensity.value = FILTER_DEFAULT_INTENSITY
+		}
 	}
 
 	const onIntensityChanging = (e) => {
@@ -164,11 +166,11 @@
 		uni.showLoading({ title: '生成中...', mask: true })
 
 		try {
-			const filterCss = buildFilterCss(activeFilter.value, intensity.value)
+			const filterEffects = buildFilterEffects(activeFilter.value, intensity.value)
 			const tempPath = await exportImageWithFilter(
 				'#exportCanvas',
 				imagePath.value,
-				filterCss,
+				filterEffects,
 				instance?.proxy ?? instance
 			)
 
@@ -213,7 +215,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.section-label {
@@ -236,7 +238,7 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -264,13 +266,13 @@
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -378,7 +380,7 @@
 
 	.filter-name {
 		font-size: 24rpx;
-		color: rgba(255, 255, 255, 0.75);
+		color: var(--text-secondary);
 		text-align: center;
 	}
 
@@ -390,7 +392,7 @@
 
 		.intensity-label {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.7);
+			color: var(--text-secondary);
 			flex-shrink: 0;
 		}
 
@@ -421,7 +423,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {

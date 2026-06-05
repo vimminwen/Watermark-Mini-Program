@@ -32,8 +32,8 @@ export const apiGetOpenId = code => {
 	return get(url);
 };
 
-// 解密手机号
-export const apiDecryptPhone = data => post('/wx/decryptPhone', data);
+// 获取微信手机号（body: { code }）
+export const apiGetWechatPhoneLogin = data => post('/wx/getPhoneNumber', data);
 
 // 手机号快捷登录（未注册等由 wechatAuth 内自动注册，不弹全局 toast）
 export const apiPhoneLogin = data => request({
@@ -153,7 +153,7 @@ export const apiGetAiLog = (aiLogId) =>
 		preserveBigInt: true
 	});
 
-// 智能消除笔（返回 aiLogId，需保留大整数精度）
+// 智能消除笔（返回 aiLogId，需保留大整数精度；支持 maskUrl 涂抹蒙版）
 export const apiSmartErase = (data) =>
 	request({
 		url: '/front/ai/smartErase',
@@ -192,3 +192,6 @@ export const apiVideoTransformationTextForUrl = (data) =>
 		silentErrorToast: true,
 		preserveBigInt: true
 	});
+
+// 获取支持的风格列表（按分类）
+export const apiGetStyleList = () => get('/front/ai/style-transfer/style-categories');

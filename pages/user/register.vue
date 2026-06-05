@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="register-page">
+	<view class="register-page" :class="themeClass">
 		<view class="header">
 			<view class="title">注册账号</view>
 			<view class="subtitle">加入云途汇水印</view>
@@ -50,7 +50,13 @@
 					maxlength="20"
 				/>
 			</view>
-			
+
+			<agreement-consent
+				v-model="agreedToTerms"
+				@open-agreement="goToAgreement"
+				@open-privacy="goToPrivacy"
+			/>
+
 			<view class="register-button" :class="{ disabled: loading }" @click="handleRegister">
 				<text>{{ loading ? '注册中...' : '注册' }}</text>
 			</view>
@@ -65,6 +71,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 	import { apiLogin, apiRegister } from '@/api/api.js'
 	import {
@@ -75,17 +84,24 @@
 	} from '@/utils/user/authHelper.js'
 	import { clearAuthSession, persistAuthSession, refreshUserProfile } from '@/utils/user/session.js'
 	import { buildLoginPayload } from '@/utils/user/rsaEncrypt.js'
+	import { useAgreementConsent } from '@/utils/user/agreementConsent.js'
+	import AgreementConsent from '@/components/user/AgreementConsent.vue'
 
 	const phone = ref('')
 	const nickname = ref('')
 	const password = ref('')
 	const confirmPassword = ref('')
 	const loading = ref(false)
+	const { agreedToTerms, ensureAgreed } = useAgreementConsent()
 
 	const isValidPhone = () => /^1\d{10}$/.test(phone.value)
 
-	const handleRegister = async () => {
+	const handleRegister = () => {
 		if (loading.value) return
+		ensureAgreed(doRegister)
+	}
+
+	const doRegister = async () => {
 		if (!isValidPhone()) {
 			uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
 			return
@@ -166,12 +182,24 @@
 	const goToLogin = () => {
 		uni.navigateBack()
 	}
+
+	const goToAgreement = () => {
+		uni.navigateTo({
+			url: '/pages/my/agreement'
+		})
+	}
+
+	const goToPrivacy = () => {
+		uni.navigateTo({
+			url: '/pages/my/privacy'
+		})
+	}
 </script>
 
 <style lang="scss">
 	.register-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 80rpx 60rpx;
 	}
 
@@ -182,13 +210,13 @@
 		.title {
 			font-size: 48rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 15rpx;
 		}
 
 		.subtitle {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -196,7 +224,7 @@
 		.input-group {
 			display: flex;
 			align-items: center;
-			background: rgba(255, 255, 255, 0.08);
+			background: var(--surface-bg);
 			border-radius: 16rpx;
 			padding: 30rpx;
 			margin-bottom: 30rpx;
@@ -209,10 +237,10 @@
 			.input-field {
 				flex: 1;
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 
 				&::placeholder {
-					color: rgba(255, 255, 255, 0.4);
+					color: var(--text-faint);
 				}
 			}
 		}
@@ -232,7 +260,7 @@
 			text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 
@@ -243,7 +271,7 @@
 
 			.link-text {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.6);
+				color: var(--text-subtle);
 
 				&.primary {
 					color: #4facfe;

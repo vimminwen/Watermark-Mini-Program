@@ -1,8 +1,8 @@
 <template>
-	<view class="mte-page">
+	<view class="mte-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!mediaPath" class="preview-empty" @click="chooseMedia">
-				<text class="empty-icon">{{ config.emptyIcon }}</text>
+				<text class="iconfont empty-icon" :class="config.emptyIcon"></text>
 				<text class="empty-title">{{ config.emptyTitle }}</text>
 				<text class="empty-desc">{{ config.emptyDesc }}</text>
 			</view>
@@ -37,7 +37,11 @@
 
 		<view v-if="mediaPath" class="action-panel boxBg">
 			<view class="process-btn" :class="{ disabled: processing }" @click="handleExtract">
-				<text>{{ processing ? '转写中...' : (resultText ? '重新转写' : config.submitBtnText) }}</text>
+				<processing-text
+					:active="processing"
+					text="转写中"
+					:idle-text="resultText ? '重新转写' : config.submitBtnText"
+				/>
 			</view>
 		</view>
 
@@ -76,17 +80,20 @@
 		</view>
 
 		<tool-tips-card :tips="config.tips" />
+		<!-- 上传日志（调试时取消注释）
 		<debug-log-panel
 			:logs="debugLogs"
 			:scroll-top="debugScrollTop"
 			@clear="clearDebugLogs"
 		/>
+		-->
 	</view>
 </template>
 
 <script setup>
 	import { ref, reactive, computed } from 'vue'
 	import { onUnload } from '@dcloudio/uni-app'
+	import { useTheme } from '@/utils/theme/useTheme.js'
 	import { apiVideoTransformationTextForUrl, apiGetAiLog } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
 	import { checkLogin } from '@/utils/user/auth.js'
@@ -96,6 +103,11 @@
 		pickLocalAudioForText,
 		handlePickTextMediaError
 	} from '@/utils/video/pickLocalTextMedia.js'
+	import {
+		VIDEO_REMOVE_MAX_PIXELS,
+		isVideoWithinRemovePixelLimit,
+		getVideoRemovePixelLimitMessage
+	} from '@/utils/video/subtitleRemoval.js'
 	import { pollAiLogResult, resolveAiLogText } from '@/utils/ai/aiLog.js'
 	import {
 		buildVideoTextExtractionPayload,
@@ -124,23 +136,25 @@
 		}
 	})
 
+	const { themeClass } = useTheme()
+
 	const MODE_CONFIG = {
 		video: {
-			emptyIcon: '🎬',
+			emptyIcon: 'icon-shipinzhuanwenzi',
 			emptyTitle: '点击选择视频',
-			emptyDesc: '最长 45 秒，建议 100MB 以内',
+			emptyDesc: `最长 45 秒，总像素不超过 ${VIDEO_REMOVE_MAX_PIXELS}，建议 100MB 以内`,
 			pickBtnText: '📁 选择视频',
 			submitBtnText: '开始转文字',
 			uploadLoading: '上传视频...',
 			tips: [
-				'选择含清晰人声或字幕的视频，最长 45 秒',
+				`选择含清晰人声的视频，最长 45 秒，总像素上限 ${VIDEO_REMOVE_MAX_PIXELS.toLocaleString()}（如 1440×1080）`,
 				'环境音过大可能影响识别准确率',
 				'视频将上传至服务端转写，请保持网络畅通',
 				'结果可点击修改后再复制'
 			]
 		},
 		audio: {
-			emptyIcon: '🎵',
+			emptyIcon: 'icon-zhuanwenzi_fill',
 			emptyTitle: '点击选择音频',
 			emptyDesc: '支持 mp3/m4a/wav 等，最长 45 秒',
 			pickBtnText: '📁 选择音频',
@@ -288,6 +302,18 @@
 		if (processing.value || !mediaPath.value) return
 		if (!checkLogin()) return
 
+		if (props.mode === 'video') {
+			const w = mediaMeta.width
+			const h = mediaMeta.height
+			if (w && h && !isVideoWithinRemovePixelLimit(w, h)) {
+				uni.showToast({
+					title: getVideoRemovePixelLimitMessage(w, h),
+					icon: 'none'
+				})
+				return
+			}
+		}
+
 		processing.value = true
 		resultText.value = ''
 		editorFocus.value = false
@@ -316,7 +342,7 @@
 			const { text: syncText, aiLogId } = parseMediaTextSubmit(body)
 			let text = syncText
 
-			if (aiLogId) {
+			if (!text && aiLogId) {
 				logStep(`3/3 轮询任务结果 (id=${aiLogId})`)
 				showTaskLoading({ title: '转写中，请稍候...', mask: true })
 				text = await pollAiLogResult(apiGetAiLog, aiLogId, {
@@ -356,7 +382,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.preview-card {
@@ -383,17 +409,21 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 			text-align: center;
 		}
 	}
@@ -423,7 +453,7 @@
 
 			.audio-name {
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 				text-align: center;
 				max-width: 100%;
 				overflow: hidden;
@@ -434,7 +464,7 @@
 
 			.audio-meta {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.55);
+				color: var(--text-muted);
 			}
 		}
 
@@ -462,7 +492,7 @@
 				border-radius: 50%;
 				background: rgba(0, 0, 0, 0.45);
 				font-size: 40rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 				padding-left: 8rpx;
 			}
 		}
@@ -535,7 +565,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {
@@ -560,7 +590,7 @@
 	.char-count {
 		margin-left: auto;
 		font-size: 24rpx;
-		color: rgba(255, 255, 255, 0.45);
+		color: var(--text-muted);
 	}
 
 	.section-label {
@@ -581,7 +611,7 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -596,11 +626,11 @@
 		border: 2rpx solid rgba(79, 172, 254, 0.25);
 		font-size: 28rpx;
 		line-height: 1.7;
-		color: rgba(255, 255, 255, 0.92);
+		color: var(--text-dim);
 	}
 
 	:deep(.result-editor-placeholder) {
-		color: rgba(255, 255, 255, 0.35);
+		color: var(--text-faint);
 		font-size: 28rpx;
 	}
 

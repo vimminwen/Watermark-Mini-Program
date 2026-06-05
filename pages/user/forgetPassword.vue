@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="forget-page">
+	<view class="forget-page" :class="themeClass">
 		<view class="header">
 			<view class="title">忘记密码</view>
 			<view class="subtitle">重置您的密码</view>
@@ -68,6 +68,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 
 	const phone = ref('')
@@ -120,7 +123,7 @@
 <style lang="scss">
 	.forget-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 80rpx 60rpx;
 	}
 
@@ -131,13 +134,13 @@
 		.title {
 			font-size: 48rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 15rpx;
 		}
 
 		.subtitle {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -145,7 +148,7 @@
 		.input-group {
 			display: flex;
 			align-items: center;
-			background: rgba(255, 255, 255, 0.08);
+			background: var(--surface-bg);
 			border-radius: 16rpx;
 			padding: 30rpx;
 			margin-bottom: 30rpx;
@@ -158,10 +161,10 @@
 			.input-field {
 				flex: 1;
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 
 				&::placeholder {
-					color: rgba(255, 255, 255, 0.4);
+					color: var(--text-faint);
 				}
 			}
 
@@ -173,8 +176,8 @@
 				color: #4facfe;
 
 				&.disabled {
-					color: rgba(255, 255, 255, 0.4);
-					background: rgba(255, 255, 255, 0.05);
+					color: var(--text-faint);
+					background: var(--surface-bg-light);
 				}
 			}
 		}
@@ -190,7 +193,7 @@
 			text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 
@@ -201,7 +204,7 @@
 
 			.link-text {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.6);
+				color: var(--text-subtle);
 
 				&.primary {
 					color: #4facfe;

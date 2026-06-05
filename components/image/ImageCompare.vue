@@ -1,4 +1,4 @@
-<template>
+﻿<template>
 	<view
 		class="image-compare"
 		:class="{ 'is-dragging': isDragging }"
@@ -286,7 +286,7 @@ onMounted(() => {
 		bottom: 16rpx;
 		padding: 6rpx 16rpx;
 		font-size: 22rpx;
-		color: #ffffff;
+		color: var(--text-primary);
 		background: rgba(0, 0, 0, 0.5);
 		border-radius: 8rpx;
 		z-index: 4;

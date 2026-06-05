@@ -1,4 +1,6 @@
 /** 消除类型 */
+export const DEFAULT_REMOVAL_FUNCTION_TYPE = 'subtitle_removal';
+
 export const REMOVAL_FUNCTION_TYPES = [
 	{ id: 'subtitle_removal', label: '字幕消除' },
 	{ id: 'watermark_removal', label: '水印消除' },
@@ -14,6 +16,42 @@ export const REMOVAL_REGION_PRESETS = [
 ];
 
 export const DEFAULT_REMOVAL_REGION = { ...REMOVAL_REGION_PRESETS[0].region };
+
+/** 视频消除允许的最长时长（秒） */
+export const VIDEO_REMOVE_MAX_DURATION = 45;
+
+/** 视频消除允许的最大总像素（宽×高），1555200（如 1440×1080） */
+export const VIDEO_REMOVE_MAX_PIXELS = 1555200;
+
+export const getVideoPixelCount = (width, height) => {
+	const w = Math.round(Number(width) || 0);
+	const h = Math.round(Number(height) || 0);
+	return w > 0 && h > 0 ? w * h : 0;
+};
+
+/** 宽高未知时返回 true，待 metadata 加载后再校验 */
+export const isVideoWithinRemovePixelLimit = (width, height) => {
+	const pixels = getVideoPixelCount(width, height);
+	if (!pixels) return true;
+	return pixels <= VIDEO_REMOVE_MAX_PIXELS;
+};
+
+export const getVideoRemovePixelLimitMessage = (width, height) => {
+	const w = Math.round(Number(width) || 0);
+	const h = Math.round(Number(height) || 0);
+	return `视频分辨率过高（${w}×${h}），总像素不能超过 1555200（如 1440×1080）`;
+};
+
+/** 测试用样例视频（url 后续在配置中补充） */
+export const VIDEO_REMOVE_SAMPLE_VIDEO = {
+	name: '测试样例视频',
+	url: 'https://utility-mini-program.oss-cn-guangzhou.aliyuncs.com/djia/video/1780465125624_55FtZAen.mp4',
+	width: 0,
+	height: 0,
+	duration: 0
+};
+
+export const hasVideoRemoveSampleUrl = () => !!String(VIDEO_REMOVE_SAMPLE_VIDEO.url || '').trim();
 
 const isSnowflakeId = (value) => {
 	if (value == null || value === '') return false;
@@ -71,7 +109,7 @@ export const buildSubtitleRemovalPayload = ({
 		y: Math.round(region.y * h),
 		w: Math.max(1, Math.round(region.w * w)),
 		h: Math.max(1, Math.round(region.h * h)),
-		functionType: functionType || 'subtitle_removal',
+		functionType: functionType || DEFAULT_REMOVAL_FUNCTION_TYPE,
 		width: w,
 		height: h,
 		duration: Math.max(1, Math.round(Number(duration) || 1))

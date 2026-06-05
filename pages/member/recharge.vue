@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="recharge-page">
+	<view class="recharge-page" :class="themeClass">
 		<view class="header">
 			<view class="subtitle">选择适合您的会员套餐</view>
 		</view>
@@ -41,21 +41,6 @@
 			<view class="empty-btn" @click="loadPackages">重新加载</view>
 		</view>
 
-		<view class="payment-section" v-if="packages.length">
-			<view class="payment-title">支付方式</view>
-			<view class="payment-methods">
-				<view
-					class="method-item"
-					:class="{ active: paymentMethod === 'wechat' }"
-					@click="paymentMethod = 'wechat'"
-				>
-					<text class="method-icon">💬</text>
-					<text class="method-name">微信支付</text>
-					<view class="method-check" :class="{ active: paymentMethod === 'wechat' }"></view>
-				</view>
-			</view>
-		</view>
-
 		<view class="bottom-section" v-if="selectedPackage">
 			<view class="total-price">
 				<text class="price-label">合计：</text>
@@ -69,6 +54,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import PayButton from '@/components/PayButton.vue'
@@ -76,7 +64,6 @@
 	import { parseMemberPackageList } from '@/utils/pay/memberPackage.js'
 
 	const selectedIndex = ref(0)
-	const paymentMethod = ref('wechat')
 	const loading = ref(true)
 	const packages = ref([])
 	const routeOptions = ref({})
@@ -215,7 +202,7 @@
 	.recharge-page {
 		min-height: 100vh;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 30rpx;
 		padding-bottom: calc(200rpx + constant(safe-area-inset-bottom));
 		padding-bottom: calc(200rpx + env(safe-area-inset-bottom));
@@ -227,7 +214,7 @@
 
 		.subtitle {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -241,7 +228,7 @@
 		.loading-text,
 		.empty-text {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 			margin-bottom: 24rpx;
 		}
 
@@ -250,7 +237,7 @@
 			background: linear-gradient(to right, #4facfe, #00f2fe);
 			border-radius: 40rpx;
 			font-size: 28rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -258,11 +245,11 @@
 		display: flex;
 		flex-direction: column;
 		gap: 25rpx;
-		margin-bottom: 50rpx;
+		margin-bottom: 30rpx;
 
 		.package-item {
-			background: rgba(255, 255, 255, 0.08);
-			border: 2rpx solid rgba(255, 255, 255, 0.1);
+			background: var(--surface-bg);
+			border: 2rpx solid var(--border-color);
 			border-radius: 20rpx;
 			padding: 35rpx;
 			transition: all 0.3s ease;
@@ -282,13 +269,13 @@
 				.package-name {
 					font-size: 36rpx;
 					font-weight: bold;
-					color: #ffffff;
+					color: var(--text-primary);
 				}
 
 				.package-tag {
 					background: linear-gradient(to right, #ff6b6b, #ffd93d);
 					font-size: 20rpx;
-					color: #ffffff;
+					color: var(--text-primary);
 					padding: 6rpx 18rpx;
 					border-radius: 30rpx;
 				}
@@ -314,14 +301,14 @@
 				.price-original {
 					margin-left: 16rpx;
 					font-size: 26rpx;
-					color: rgba(255, 255, 255, 0.45);
+					color: var(--text-muted);
 					text-decoration: line-through;
 				}
 			}
 
 			.package-desc {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.6);
+				color: var(--text-subtle);
 				margin-bottom: 25rpx;
 			}
 
@@ -332,83 +319,10 @@
 
 				.benefit-tag {
 					font-size: 22rpx;
-					color: rgba(255, 255, 255, 0.8);
-					background: rgba(255, 255, 255, 0.1);
+					color: var(--text-soft);
+					background: var(--surface-bg);
 					padding: 8rpx 20rpx;
 					border-radius: 30rpx;
-				}
-			}
-		}
-	}
-
-	.payment-section {
-		background: rgba(255, 255, 255, 0.08);
-		border-radius: 20rpx;
-		padding: 30rpx;
-		margin-bottom: 50rpx;
-
-		.payment-title {
-			font-size: 32rpx;
-			font-weight: bold;
-			color: #ffffff;
-			margin-bottom: 25rpx;
-		}
-
-		.payment-methods {
-			display: flex;
-			flex-direction: column;
-			gap: 20rpx;
-
-			.method-item {
-				display: flex;
-				align-items: center;
-				padding: 25rpx;
-				background: rgba(255, 255, 255, 0.05);
-				border-radius: 16rpx;
-				border: 2rpx solid transparent;
-				transition: all 0.3s ease;
-
-				&.active {
-					background: rgba(79, 172, 254, 0.1);
-					border-color: #4facfe;
-				}
-
-				.method-icon {
-					font-size: 40rpx;
-					margin-right: 20rpx;
-				}
-
-				.method-name {
-					flex: 1;
-					font-size: 30rpx;
-					color: #ffffff;
-				}
-
-				.method-check {
-					width: 36rpx;
-					height: 36rpx;
-					border: 2rpx solid rgba(255, 255, 255, 0.3);
-					border-radius: 50%;
-					transition: all 0.3s ease;
-
-					&.active {
-						background: #4facfe;
-						border-color: #4facfe;
-						position: relative;
-
-						&::after {
-							content: '';
-							position: absolute;
-							left: 50%;
-							top: 50%;
-							transform: translate(-50%, -50%) rotate(45deg);
-							width: 10rpx;
-							height: 18rpx;
-							border: 2rpx solid #ffffff;
-							border-top: none;
-							border-left: none;
-						}
-					}
 				}
 			}
 		}
@@ -433,7 +347,7 @@
 		.total-price {
 			.price-label {
 				font-size: 28rpx;
-				color: rgba(255, 255, 255, 0.7);
+				color: var(--text-secondary);
 			}
 
 			.price-value {
@@ -449,7 +363,7 @@
 			border-radius: 50rpx;
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			box-shadow: 0 8rpx 30rpx rgba(79, 172, 254, 0.4);
 		}
 	}

@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="cancel-page">
+	<view class="cancel-page" :class="themeClass">
 		<view class="header">
 			<view class="subtitle">我们很遗憾您要离开</view>
 		</view>
@@ -9,15 +9,7 @@
 			<text class="info-loading">会员信息加载中…</text>
 		</view>
 
-		<view class="info-section boxBg non-member" v-else-if="!isVipActive">
-			<text class="non-member-icon">ℹ️</text>
-			<text class="non-member-title">{{ notMemberTitle }}</text>
-			<text class="non-member-desc">{{ notMemberDesc }}</text>
-			<view class="non-member-btn" v-if="!isLoggedIn" @click="goLogin">去登录</view>
-			<view class="non-member-btn" v-else @click="goRecharge">开通会员</view>
-		</view>
-
-		<view class="info-section boxBg" v-else>
+		<view class="info-section boxBg" v-else-if="isVipActive">
 			<view class="info-item">
 				<text class="info-label">当前会员</text>
 				<text class="info-value">{{ memberName }}</text>
@@ -31,8 +23,14 @@
 				<text class="info-value highlight">{{ remainingText }}</text>
 			</view>
 		</view>
+
+		<view class="info-section boxBg non-member" v-else>
+			<text class="non-member-icon">ℹ️</text>
+			<text class="non-member-title">当前无有效会员</text>
+			<text class="non-member-desc">您仍可办理退订，成功后之后不再扣费</text>
+		</view>
 		
-		<view class="survey-section boxBg" v-if="isVipActive && !loading">
+		<view class="survey-section boxBg" v-if="!loading">
 			<view class="survey-title">请告诉我们原因（可选）</view>
 			<view class="reason-list">
 				<view 
@@ -57,30 +55,27 @@
 			</view>
 		</view>
 		
-		<view class="warning-section boxBg" v-if="isVipActive && !loading">
+		<view class="warning-section boxBg" v-if="!loading">
 			<view class="warning-icon">⚠️</view>
 			<view class="warning-text">
 				<text class="warning-title">重要提醒</text>
-				<text class="warning-desc">• 退订后会员权益将在到期后失效</text>
-				<text class="warning-desc">• 已支付费用将按比例退还</text>
-				<text class="warning-desc">• 云端存储数据将保留30天</text>
+				<text class="warning-desc">• 退订成功后，之后不再扣费</text>
+				<text class="warning-desc">• 已开通会员权益将在到期后失效</text>
 			</view>
 		</view>
 		
-		<view class="button-section">
-			<view class="cancel-button" @click="handleCancel">{{ isVipActive ? '取消' : '返回' }}</view>
-			<view
-				class="confirm-button"
-				:class="{ disabled: !canConfirmCancel }"
-				v-if="isVipActive && !loading"
-				@click="handleConfirm"
-			>确认退订</view>
+		<view class="button-section" v-if="!loading">
+			<view class="cancel-button" @click="handleCancel">取消</view>
+			<view class="confirm-button" @click="handleConfirm">确认退订</view>
 		</view>
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed } from 'vue'
 	import { onShow } from '@dcloudio/uni-app'
 	import { hasValidToken } from '@/utils/request.js'
@@ -89,13 +84,11 @@
 	const selectedReason = ref(-1)
 	const feedback = ref('')
 	const loading = ref(true)
-	const isLoggedIn = ref(false)
 
 	const { userVipInfo, getVipInfo } = useVipInfo()
 
 	const isVipActive = computed(() => userVipInfo.value.ifVip)
 	const vipDetail = computed(() => userVipInfo.value.vipDetail)
-	const canConfirmCancel = computed(() => isLoggedIn.value && isVipActive.value && !loading.value)
 
 	const memberName = computed(() => {
 		return vipDetail.value?.planName || vipDetail.value?.model || '尊贵会员'
@@ -112,16 +105,6 @@
 		return '--'
 	})
 
-	const notMemberTitle = computed(() => {
-		if (!isLoggedIn.value) return '请先登录'
-		return '您当前不是会员'
-	})
-
-	const notMemberDesc = computed(() => {
-		if (!isLoggedIn.value) return '登录后可查看会员状态并办理退订'
-		return '尚未开通或会员已过期，无需退订'
-	})
-
 	const reasons = [
 		'价格太高',
 		'功能用不上',
@@ -134,12 +117,10 @@
 	const loadVipInfo = async () => {
 		loading.value = true
 		if (!hasValidToken() || !uni.getStorageSync('userIdStorage')) {
-			isLoggedIn.value = false
 			userVipInfo.value = { ifVip: false, vipDetail: null }
 			loading.value = false
 			return
 		}
-		isLoggedIn.value = true
 		try {
 			await getVipInfo()
 		} catch (err) {
@@ -154,36 +135,26 @@
 		loadVipInfo()
 	})
 
-	const goLogin = () => {
-		uni.navigateTo({ url: '/pages/user/login' })
-	}
-
-	const goRecharge = () => {
-		uni.navigateTo({ url: '/pages/member/recharge' })
-	}
-
 	const handleCancel = () => {
 		uni.navigateBack()
 	}
 
 	const handleConfirm = () => {
-		if (!canConfirmCancel.value) {
-			uni.showToast({
-				title: isLoggedIn.value ? '您当前不是会员，无法退订' : '请先登录',
-				icon: 'none'
-			})
-			return
-		}
 		uni.showModal({
 			title: '确认退订',
-			content: '您确定要退订会员吗？',
+			content: '确定办理退订吗？',
 			success: (res) => {
-				if (res.confirm) {
-					uni.showToast({
-						title: '退订功能开发中',
-						icon: 'none'
+				if (!res.confirm) return
+				uni.showToast({
+					title: '退订成功，之后不再扣费',
+					icon: 'success',
+					duration: 2500
+				})
+				setTimeout(() => {
+					uni.navigateBack({
+						fail: () => uni.switchTab({ url: '/pages/my/index' })
 					})
-				}
+				}, 2000)
 			}
 		})
 	}
@@ -192,7 +163,7 @@
 <style lang="scss">
 	.cancel-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 30rpx;
 		padding-bottom: 180rpx;
 	}
@@ -204,13 +175,13 @@
 		.title {
 			font-size: 48rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 15rpx;
 		}
 
 		.subtitle {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -227,7 +198,7 @@
 			display: block;
 			text-align: center;
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 			padding: 20rpx 0;
 		}
 
@@ -246,23 +217,14 @@
 			.non-member-title {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 				margin-bottom: 16rpx;
 			}
 
 			.non-member-desc {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.65);
+				color: var(--text-subtle);
 				line-height: 1.6;
-				margin-bottom: 30rpx;
-			}
-
-			.non-member-btn {
-				padding: 18rpx 48rpx;
-				background: linear-gradient(to right, #4facfe, #00f2fe);
-				border-radius: 40rpx;
-				font-size: 28rpx;
-				color: #ffffff;
 			}
 		}
 
@@ -273,17 +235,17 @@
 			padding: 20rpx 0;
 
 			&:not(:last-child) {
-				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				border-bottom: 1rpx solid var(--border-color);
 			}
 
 			.info-label {
 				font-size: 28rpx;
-				color: rgba(255, 255, 255, 0.7);
+				color: var(--text-secondary);
 			}
 
 			.info-value {
 				font-size: 28rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 
 				&.highlight {
 					color: #ffd700;
@@ -299,7 +261,7 @@
 		.survey-title {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 25rpx;
 		}
 
@@ -313,7 +275,7 @@
 				display: flex;
 				align-items: center;
 				padding: 15rpx 25rpx;
-				background: rgba(255, 255, 255, 0.05);
+				background: var(--surface-bg-light);
 				border-radius: 30rpx;
 				border: 2rpx solid transparent;
 				transition: all 0.3s ease;
@@ -353,7 +315,7 @@
 
 				.reason-text {
 					font-size: 24rpx;
-					color: rgba(255, 255, 255, 0.9);
+					color: var(--text-dim);
 				}
 			}
 		}
@@ -364,15 +326,15 @@
 			.feedback-textarea {
 				width: 100%;
 				min-height: 160rpx;
-				background: rgba(255, 255, 255, 0.05);
+				background: var(--surface-bg-light);
 				border-radius: 16rpx;
 				padding: 25rpx;
 				font-size: 26rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 				box-sizing: border-box;
 
 				&::placeholder {
-					color: rgba(255, 255, 255, 0.4);
+					color: var(--text-faint);
 				}
 			}
 
@@ -381,7 +343,7 @@
 				right: 20rpx;
 				bottom: 20rpx;
 				font-size: 22rpx;
-				color: rgba(255, 255, 255, 0.4);
+				color: var(--text-faint);
 			}
 		}
 	}
@@ -412,7 +374,7 @@
 
 			.warning-desc {
 				font-size: 24rpx;
-				color: rgba(255, 255, 255, 0.7);
+				color: var(--text-secondary);
 				margin-bottom: 10rpx;
 			}
 		}
@@ -427,10 +389,10 @@
 			flex: 1;
 			text-align: center;
 			padding: 30rpx;
-			background: rgba(255, 255, 255, 0.1);
+			background: var(--surface-bg);
 			border-radius: 50rpx;
 			font-size: 30rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		.confirm-button {
@@ -441,12 +403,12 @@
 			border-radius: 50rpx;
 			font-size: 30rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			box-shadow: 0 8rpx 30rpx rgba(255, 107, 107, 0.3);
 
 			&.disabled {
 				background: rgba(255, 255, 255, 0.15);
-				color: rgba(255, 255, 255, 0.4);
+				color: var(--text-faint);
 				box-shadow: none;
 			}
 		}

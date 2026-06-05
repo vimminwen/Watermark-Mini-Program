@@ -1,10 +1,10 @@
 <template>
 	<dark-page-meta />
-	<view class="sub-page">
+	<view class="sub-page" :class="themeClass">
 		<view class="wechat-content">
 			<view class="qr-section">
 				<view class="qr-box">
-					<image class="qr-code" src="/static/logo.png" mode="aspectFit"></image>
+					<image class="qr-code" src="/static/gzh.jpg" mode="aspectFit"></image>
 					<view class="qr-mask">
 						<text class="mask-text">扫码关注</text>
 					</view>
@@ -28,10 +28,6 @@
 						<text class="benefit-icon">💡</text>
 						<text class="benefit-text">使用技巧分享</text>
 					</view>
-					<view class="benefit-item">
-						<text class="benefit-icon">👥</text>
-						<text class="benefit-text">加入用户社群</text>
-					</view>
 				</view>
 			</view>
 			
@@ -45,12 +41,15 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 </script>
 
 <style lang="scss">
 	.sub-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 40rpx 30rpx;
 		padding-bottom: 120rpx;
 	}
@@ -93,7 +92,7 @@
 				
 				.mask-text {
 					font-size: 26rpx;
-					color: #ffffff;
+					color: var(--text-primary);
 				}
 			}
 		}
@@ -101,13 +100,13 @@
 		.qr-title {
 			font-size: 34rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 		
 		.qr-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -119,7 +118,7 @@
 		.benefits-title {
 			font-size: 30rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			display: block;
 			margin-bottom: 24rpx;
 			text-align: center;
@@ -142,7 +141,7 @@
 			
 			.benefit-text {
 				font-size: 28rpx;
-				color: rgba(255, 255, 255, 0.9);
+				color: var(--text-dim);
 			}
 		}
 	}
@@ -163,7 +162,7 @@
 		
 		.tips-content {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.8);
+			color: var(--text-soft);
 			line-height: 1.7;
 		}
 	}

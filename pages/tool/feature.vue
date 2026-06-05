@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="feature-page">
+	<view class="feature-page" :class="themeClass">
 		<ToolBackendRequired
 			:title="toolTitle"
 			:description="toolDesc"
@@ -12,6 +12,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import ToolBackendRequired from '@/components/common/ToolBackendRequired.vue'
@@ -23,7 +26,7 @@
 
 	const tips = [
 		'此类能力需上传图片/视频至服务端处理',
-		'涉及 AI 模型推理，无法在小程序内离线完成',
+		'涉及模型推理，无法在小程序内离线完成',
 		'后续接入接口后将在此页直接提供处理入口'
 	]
 
@@ -48,6 +51,6 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 </style>

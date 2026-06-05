@@ -34,11 +34,58 @@ export const createNormCropForAspect = (ratio) => {
 	};
 };
 
-/** 限制裁剪框在图片范围内 */
+/** 裁剪框最小宽高（归一化） */
+export const MIN_CROP_NORM_SIZE = 0.08;
+
+/** 限制裁剪框在图片范围内，并保证最小尺寸 */
 export const clampNormCrop = (crop) => {
-	const x = Math.max(0, Math.min(1 - crop.w, crop.x));
-	const y = Math.max(0, Math.min(1 - crop.h, crop.y));
-	return { ...crop, x, y };
+	const minSize = MIN_CROP_NORM_SIZE;
+	let { x, y, w, h } = crop || { x: 0, y: 0, w: 1, h: 1 };
+
+	w = Math.max(minSize, Math.min(1, w));
+	h = Math.max(minSize, Math.min(1, h));
+	x = Math.max(0, Math.min(1 - w, x));
+	y = Math.max(0, Math.min(1 - h, y));
+
+	return { x, y, w, h };
+};
+
+/**
+ * 自由模式下根据拖拽角点调整裁剪框
+ */
+export const applyCropResize = (snapshot, dx, dy) => {
+	const { handle, regionX, regionY, regionW, regionH } = snapshot;
+	let x = regionX;
+	let y = regionY;
+	let w = regionW;
+	let h = regionH;
+
+	switch (handle) {
+		case 'br':
+			w = regionW + dx;
+			h = regionH + dy;
+			break;
+		case 'bl':
+			x = regionX + dx;
+			w = regionW - dx;
+			h = regionH + dy;
+			break;
+		case 'tr':
+			y = regionY + dy;
+			w = regionW + dx;
+			h = regionH - dy;
+			break;
+		case 'tl':
+			x = regionX + dx;
+			y = regionY + dy;
+			w = regionW - dx;
+			h = regionH - dy;
+			break;
+		default:
+			return clampNormCrop({ x, y, w, h });
+	}
+
+	return clampNormCrop({ x, y, w, h });
 };
 
 /**

@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="sub-page">
+	<view class="sub-page" :class="themeClass">
 		<view class="about-content">
 			<view class="logo-section">
 				<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
@@ -46,12 +46,15 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 </script>
 
 <style lang="scss">
 	.sub-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 30rpx;
 		padding-bottom: 120rpx;
 	}
@@ -77,13 +80,13 @@
 		.app-name {
 			font-size: 36rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 10rpx;
 		}
 		
 		.app-version {
 			font-size: 24rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -96,7 +99,7 @@
 		.features-title {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 20rpx;
 			display: block;
 		}
@@ -104,7 +107,7 @@
 
 	.description-text {
 		font-size: 26rpx;
-		color: rgba(255, 255, 255, 0.8);
+		color: var(--text-soft);
 		line-height: 1.8;
 		display: block;
 	}
@@ -126,7 +129,7 @@
 		
 		.feature-text {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.9);
+			color: var(--text-dim);
 		}
 	}
 </style>

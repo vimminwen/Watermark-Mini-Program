@@ -1,4 +1,35 @@
-const DEFAULT_MAX_SIDE = 1920;
+const DEFAULT_MAX_SIDE = 1280;
+const DEFAULT_COMPRESS_QUALITY = 0.5;
+
+export { DEFAULT_MAX_SIDE, DEFAULT_COMPRESS_QUALITY };
+
+/**
+ * 根据原图体积与尺寸计算压缩参数
+ */
+export const resolveCompressOptions = (fileSizeBytes = 0, width = 0, height = 0) => {
+	const mb = (Number(fileSizeBytes) || 0) / (1024 * 1024);
+	const longest = Math.max(Number(width) || 0, Number(height) || 0);
+	const pixels = (Number(width) || 0) * (Number(height) || 0);
+
+	let maxSide = DEFAULT_MAX_SIDE;
+	let quality = DEFAULT_COMPRESS_QUALITY;
+
+	if (mb >= 3 || pixels >= 4000000) {
+		maxSide = 1080;
+		quality = 0.42;
+	} else if (mb >= 1.5 || pixels >= 2500000) {
+		maxSide = 1280;
+		quality = 0.48;
+	} else if (mb >= 0.8 || longest > 1600) {
+		maxSide = 1440;
+		quality = 0.52;
+	} else if (mb >= 0.4) {
+		maxSide = 1600;
+		quality = 0.55;
+	}
+
+	return { maxSide, quality, fileType: 'jpg' };
+};
 
 /**
  * 格式化文件大小
@@ -39,9 +70,9 @@ export const compressImageToTempFile = (
 	options = {},
 	componentInstance
 ) => {
-	const quality = Math.min(1, Math.max(0.1, Number(options.quality) ?? 0.7));
-	const maxSide = Number(options.maxSide) || DEFAULT_MAX_SIDE;
 	const fileType = options.fileType === 'png' ? 'png' : 'jpg';
+	const fileSizeBytes = Number(options.fileSizeBytes) || 0;
+	const useAdaptive = options.adaptive !== false;
 
 	return new Promise((resolve, reject) => {
 		if (!imagePath) {
@@ -71,6 +102,21 @@ export const compressImageToTempFile = (
 				img.onload = () => {
 					let width = img.width;
 					let height = img.height;
+
+					let quality;
+					let maxSide;
+					if (useAdaptive) {
+						const resolved = resolveCompressOptions(fileSizeBytes, width, height);
+						maxSide = resolved.maxSide;
+						quality = resolved.quality;
+					} else {
+						quality = Math.min(
+							1,
+							Math.max(0.1, Number(options.quality) ?? DEFAULT_COMPRESS_QUALITY)
+						);
+						maxSide = Number(options.maxSide) || DEFAULT_MAX_SIDE;
+					}
+
 					const longest = Math.max(width, height);
 
 					if (longest > maxSide) {
@@ -79,16 +125,17 @@ export const compressImageToTempFile = (
 						height = Math.round(height * scale);
 					}
 
-					const dpr = uni.getSystemInfoSync().pixelRatio || 2;
-					canvas.width = width * dpr;
-					canvas.height = height * dpr;
+					// 离屏导出无需 DPR，避免输出分辨率虚高导致压缩效果差
+					canvas.width = width;
+					canvas.height = height;
 					ctx.setTransform(1, 0, 0, 1, 0, 0);
-					ctx.scale(dpr, dpr);
 					ctx.clearRect(0, 0, width, height);
 					ctx.drawImage(img, 0, 0, width, height);
 
 					const exportOptions = {
 						canvas,
+						destWidth: width,
+						destHeight: height,
 						fileType,
 						quality: fileType === 'jpg' ? quality : undefined,
 						success: (fileRes) => resolve(fileRes.tempFilePath),

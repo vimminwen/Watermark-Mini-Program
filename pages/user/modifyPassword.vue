@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="modify-password-page">
+	<view class="modify-password-page" :class="themeClass">
 		<view class="header">
 			<view class="title">{{ hasPassword ? '修改密码' : '设置密码' }}</view>
 			<view class="subtitle">{{ hasPassword ? '请输入旧密码和新密码' : '请设置您的登录密码' }}</view>
@@ -49,6 +49,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiModifyUserPw } from '@/api/api.js'
@@ -142,7 +145,7 @@
 <style lang="scss">
 	.modify-password-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 80rpx 60rpx;
 	}
 
@@ -153,13 +156,13 @@
 		.title {
 			font-size: 48rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 15rpx;
 		}
 
 		.subtitle {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -174,7 +177,7 @@
 			padding: 25rpx 0;
 
 			&:not(:last-child) {
-				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				border-bottom: 1rpx solid var(--border-color);
 			}
 
 			.form-icon {
@@ -185,10 +188,10 @@
 			.form-input {
 				flex: 1;
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 
 				&::placeholder {
-					color: rgba(255, 255, 255, 0.4);
+					color: var(--text-faint);
 				}
 			}
 		}
@@ -218,7 +221,7 @@
 			text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 	}

@@ -89,7 +89,7 @@
 
 			.debug-hint {
 				font-size: 22rpx;
-				color: rgba(255, 255, 255, 0.4);
+				color: var(--text-faint);
 			}
 
 			.debug-clear {
@@ -105,7 +105,7 @@
 
 		.debug-empty {
 			font-size: 24rpx;
-			color: rgba(255, 255, 255, 0.45);
+			color: var(--text-muted);
 			line-height: 1.6;
 		}
 
@@ -115,16 +115,16 @@
 			align-items: flex-start;
 			gap: 8rpx;
 			padding: 10rpx 0;
-			border-bottom: 1rpx solid rgba(255, 255, 255, 0.06);
+			border-bottom: 1rpx solid var(--border-color);
 
 			&:active {
 				opacity: 0.75;
-				background: rgba(255, 255, 255, 0.04);
+				background: var(--surface-bg-light);
 			}
 
 			.debug-time {
 				font-size: 20rpx;
-				color: rgba(255, 255, 255, 0.4);
+				color: var(--text-faint);
 				flex-shrink: 0;
 			}
 
@@ -139,7 +139,7 @@
 				flex: 1;
 				min-width: 0;
 				font-size: 22rpx;
-				color: rgba(255, 255, 255, 0.85);
+				color: var(--text-soft);
 				word-break: break-all;
 				white-space: pre-wrap;
 				line-height: 1.5;

@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="sub-page">
+	<view class="sub-page" :class="themeClass">
 		<scroll-view scroll-y class="scroll-content">
 			<view class="content-box">
 				<view class="section">
@@ -54,12 +54,15 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 </script>
 
 <style lang="scss">
 	.sub-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		width: 100%;
 		box-sizing: border-box;
 	}
@@ -82,7 +85,7 @@
 	.title {
 		font-size: 32rpx;
 		font-weight: bold;
-		color: #ffffff;
+		color: var(--text-primary);
 		display: block;
 		text-align: center;
 		margin-bottom: 10rpx;
@@ -90,11 +93,11 @@
 
 	.subtitle {
 		font-size: 24rpx;
-		color: rgba(255, 255, 255, 0.6);
+		color: var(--text-subtle);
 		display: block;
 		text-align: center;
 		margin-bottom: 20rpx;
-		border-bottom: 1rpx solid rgba(255, 255, 255, 0.2);
+		border-bottom: 1rpx solid var(--border-color);
 		padding-bottom: 20rpx;
 	}
 
@@ -104,14 +107,14 @@
 		.section-title {
 			font-size: 26rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 			display: block;
 			margin-bottom: 12rpx;
 		}
 		
 		.section-content {
 			font-size: 24rpx;
-			color: rgba(255, 255, 255, 0.8);
+			color: var(--text-soft);
 			line-height: 1.6;
 			display: block;
 			margin-bottom: 12rpx;
@@ -122,7 +125,7 @@
 			
 			.list-item {
 				font-size: 24rpx;
-				color: rgba(255, 255, 255, 0.8);
+				color: var(--text-soft);
 				line-height: 1.6;
 				display: block;
 				margin-bottom: 8rpx;
@@ -132,11 +135,11 @@
 
 	.footer {
 		font-size: 22rpx;
-		color: rgba(255, 255, 255, 0.4);
+		color: var(--text-faint);
 		display: block;
 		text-align: center;
 		margin-top: 30rpx;
 		padding-top: 20rpx;
-		border-top: 1rpx solid rgba(255, 255, 255, 0.1);
+		border-top: 1rpx solid var(--border-color);
 	}
 </style>

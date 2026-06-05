@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="orders-page">
+	<view class="orders-page" :class="themeClass">
 		<view style="height: 30rpx;"></view>
 
 		<view class="order-list">
@@ -52,6 +52,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed } from 'vue'
 	import { onShow, onPullDownRefresh } from '@dcloudio/uni-app'
 	import { apiGetPayHistory } from '@/api/api.js'
@@ -117,7 +120,7 @@
 <style lang="scss">
 	.orders-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.order-list {
@@ -131,7 +134,7 @@
 
 		.loading-text {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.6);
+			color: var(--text-subtle);
 		}
 	}
 
@@ -145,13 +148,13 @@
 			justify-content: space-between;
 			margin-bottom: 25rpx;
 			padding-bottom: 20rpx;
-			border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+			border-bottom: 1rpx solid var(--border-color);
 
 			.order-title {
 				flex: 1;
 				font-size: 30rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 				margin-right: 16rpx;
 			}
 
@@ -180,14 +183,14 @@
 
 				.info-label {
 					font-size: 26rpx;
-					color: rgba(255, 255, 255, 0.6);
+					color: var(--text-subtle);
 					flex-shrink: 0;
 					margin-right: 20rpx;
 				}
 
 				.info-value {
 					font-size: 26rpx;
-					color: rgba(255, 255, 255, 0.9);
+					color: var(--text-dim);
 					text-align: right;
 					word-break: break-all;
 
@@ -214,7 +217,7 @@
 
 		.empty-text {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 			margin-bottom: 30rpx;
 		}
 
@@ -223,7 +226,7 @@
 			background: linear-gradient(to right, #4facfe, #00f2fe);
 			border-radius: 40rpx;
 			font-size: 28rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 </style>

@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5186116 */
-  src: url('iconfont.woff2?t=1779933189268') format('woff2'),
-       url('iconfont.woff?t=1779933189268') format('woff'),
-       url('iconfont.ttf?t=1779933189268') format('truetype');
+  src: url('iconfont.woff2?t=1780285187167') format('woff2'),
+       url('iconfont.woff?t=1780285187167') format('woff'),
+       url('iconfont.ttf?t=1780285187167') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,50 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-fangda-:before {
+  content: "\e60e";
+}
+
+.icon-lvjing:before {
+  content: "\e62a";
+}
+
+.icon-tupianbianji:before {
+  content: "\e65b";
+}
+
+.icon-tupianchuli:before {
+  content: "\e608";
+}
+
+.icon-koutu:before {
+  content: "\e607";
+}
+
+.icon-post_video:before {
+  content: "\e621";
+}
+
+.icon-jianqie:before {
+  content: "\e648";
+}
+
+.icon-zhuanwenzi_fill:before {
+  content: "\e6e7";
+}
+
+.icon-compress-image:before {
+  content: "\e600";
+}
+
+.icon-shengchengAI3:before {
+  content: "\e7cb";
+}
+
+.icon-shipinzhuanwenzi:before {
+  content: "\e624";
 }
 
 .icon-xiangyou:before {

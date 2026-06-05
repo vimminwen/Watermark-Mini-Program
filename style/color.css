@@ -1,24 +1,76 @@
-/* 主题背景色 */
-.themeBgColor {
-	background: #233968;
+/* 主题 CSS 变量 - 暗夜（默认） */
+page,
+.theme-dark {
+	--page-bg-start: #050d40;
+	--page-bg-end: #233968;
+	--page-bg-color: #050d40;
+	--text-primary: #ffffff;
+	--text-secondary: rgba(255, 255, 255, 0.7);
+	--text-muted: rgba(255, 255, 255, 0.5);
+	--text-faint: rgba(255, 255, 255, 0.4);
+	--text-subtle: rgba(255, 255, 255, 0.6);
+	--text-soft: rgba(255, 255, 255, 0.8);
+	--text-dim: rgba(255, 255, 255, 0.9);
+	--card-bg: rgba(0, 0, 0, 0.4);
+	--surface-bg: rgba(255, 255, 255, 0.1);
+	--surface-bg-light: rgba(255, 255, 255, 0.05);
+	--surface-bg-strong: rgba(255, 255, 255, 0.2);
+	--border-color: rgba(255, 255, 255, 0.1);
+	--nav-bar-bg: #050d40;
+	--tab-bar-bg: #233968;
+	--tab-bar-color: #999999;
+	--tab-bar-selected: #ffffff;
+	--safe-area-bg: #233968;
 }
 
-/* 页面渐变背景 */
+/* 白天主题 */
+.theme-light {
+	--page-bg-start: #f5f7fb;
+	--page-bg-end: #e8edf5;
+	--page-bg-color: #ffffff;
+	--text-primary: #1a1a2e;
+	--text-secondary: rgba(26, 26, 46, 0.72);
+	--text-muted: rgba(26, 26, 46, 0.5);
+	--text-faint: rgba(26, 26, 46, 0.4);
+	--text-subtle: rgba(26, 26, 46, 0.6);
+	--text-soft: rgba(26, 26, 46, 0.82);
+	--text-dim: rgba(26, 26, 46, 0.92);
+	--card-bg: rgba(255, 255, 255, 0.92);
+	--surface-bg: rgba(0, 0, 0, 0.05);
+	--surface-bg-light: rgba(0, 0, 0, 0.03);
+	--surface-bg-strong: rgba(0, 0, 0, 0.08);
+	--border-color: rgba(0, 0, 0, 0.08);
+	--nav-bar-bg: #ffffff;
+	--tab-bar-bg: #ffffff;
+	--tab-bar-color: #999999;
+	--tab-bar-selected: #233968;
+	--safe-area-bg: #ffffff;
+}
+
 page {
-	background: linear-gradient(to bottom, #050d40, #233968);
+	background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	min-height: 100vh;
-	color: #ffffff;
+	color: var(--text-primary);
 	font-size: 30rpx;
+}
+
+/* 主题背景色 */
+.themeBgColor {
+	background: var(--page-bg-end);
 }
 
 /* 主题文字色 */
 .themeColor {
-	color: #233968;
+	color: var(--page-bg-end);
 }
 
 /* 卡片背景 */
-.boxBg{
-	background: rgba(0, 0, 0, 0.4);
+.boxBg {
+	background: var(--card-bg);
+}
+
+.theme-light .boxBg {
+	box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
 }
 
 /* 成功色 */
@@ -43,7 +95,7 @@ page {
 
 /* 白色文字 */
 .white {
-	color: #ffffff;
+	color: var(--text-primary);
 }
 
 /* 蓝色渐变装饰线 */

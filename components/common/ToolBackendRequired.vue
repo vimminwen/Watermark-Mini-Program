@@ -26,7 +26,7 @@
 		message: {
 			type: String,
 			default:
-				'该功能依赖服务端 AI 与算力，小程序端无法独立完成，请等待后续版本接入。'
+				'该功能依赖服务端智能处理与算力，小程序端无法独立完成，请等待后续版本接入。'
 		},
 		showBack: {
 			type: Boolean,
@@ -61,13 +61,13 @@
 	.status-title {
 		font-size: 34rpx;
 		font-weight: bold;
-		color: #ffffff;
+		color: var(--text-primary);
 		margin-bottom: 16rpx;
 	}
 
 	.status-desc {
 		font-size: 26rpx;
-		color: rgba(255, 255, 255, 0.65);
+		color: var(--text-subtle);
 		line-height: 1.5;
 		margin-bottom: 32rpx;
 	}
@@ -91,7 +91,7 @@
 
 		.notice-text {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.75);
+			color: var(--text-secondary);
 			line-height: 1.6;
 			text-align: left;
 		}

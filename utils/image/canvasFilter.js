@@ -1,13 +1,129 @@
+import { isIdentityFilterEffects } from '@/utils/image/filters.js';
+
 const MAX_EXPORT_SIDE = 1200;
 
+const clamp255 = (value) => Math.max(0, Math.min(255, value));
+
+const rgbToHsl = (r, g, b) => {
+	r /= 255;
+	g /= 255;
+	b /= 255;
+	const max = Math.max(r, g, b);
+	const min = Math.min(r, g, b);
+	let h = 0;
+	let s = 0;
+	const l = (max + min) / 2;
+
+	if (max !== min) {
+		const d = max - min;
+		s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+		switch (max) {
+			case r:
+				h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+				break;
+			case g:
+				h = ((b - r) / d + 2) / 6;
+				break;
+			default:
+				h = ((r - g) / d + 4) / 6;
+				break;
+		}
+	}
+
+	return [h, s, l];
+};
+
+const hslToRgb = (h, s, l) => {
+	if (s === 0) {
+		const v = l * 255;
+		return [v, v, v];
+	}
+
+	const hue2rgb = (p, q, t) => {
+		let tt = t;
+		if (tt < 0) tt += 1;
+		if (tt > 1) tt -= 1;
+		if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+		if (tt < 1 / 2) return q;
+		if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+		return p;
+	};
+
+	const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+	const p = 2 * l - q;
+
+	return [
+		hue2rgb(p, q, h + 1 / 3) * 255,
+		hue2rgb(p, q, h) * 255,
+		hue2rgb(p, q, h - 1 / 3) * 255
+	];
+};
+
+/** 与 CSS filter 顺序一致：brightness → contrast → saturate → grayscale → sepia → hue-rotate */
+const applyEffectsToPixel = (r, g, b, effects) => {
+	r *= effects.brightness;
+	g *= effects.brightness;
+	b *= effects.brightness;
+
+	r = (r - 128) * effects.contrast + 128;
+	g = (g - 128) * effects.contrast + 128;
+	b = (b - 128) * effects.contrast + 128;
+
+	if (effects.saturate !== 1) {
+		let [h, s, l] = rgbToHsl(clamp255(r), clamp255(g), clamp255(b));
+		s = Math.min(1, Math.max(0, s * effects.saturate));
+		[r, g, b] = hslToRgb(h, s, l);
+	}
+
+	if (effects.grayscale > 0) {
+		const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+		const amount = effects.grayscale;
+		r = r * (1 - amount) + gray * amount;
+		g = g * (1 - amount) + gray * amount;
+		b = b * (1 - amount) + gray * amount;
+	}
+
+	if (effects.sepia > 0) {
+		const sepiaR = r * 0.393 + g * 0.769 + b * 0.189;
+		const sepiaG = r * 0.349 + g * 0.686 + b * 0.168;
+		const sepiaB = r * 0.272 + g * 0.534 + b * 0.131;
+		const amount = effects.sepia;
+		r = r * (1 - amount) + sepiaR * amount;
+		g = g * (1 - amount) + sepiaG * amount;
+		b = b * (1 - amount) + sepiaB * amount;
+	}
+
+	if (effects.hueRotate !== 0) {
+		let [h, s, l] = rgbToHsl(clamp255(r), clamp255(g), clamp255(b));
+		h = (h + effects.hueRotate / 360) % 1;
+		if (h < 0) h += 1;
+		[r, g, b] = hslToRgb(h, s, l);
+	}
+
+	return [clamp255(r), clamp255(g), clamp255(b)];
+};
+
+const applyFilterToImageData = (imageData, effects) => {
+	const { data } = imageData;
+	for (let i = 0; i < data.length; i += 4) {
+		const alpha = data[i + 3];
+		if (alpha === 0) continue;
+		const [r, g, b] = applyEffectsToPixel(data[i], data[i + 1], data[i + 2], effects);
+		data[i] = r;
+		data[i + 1] = g;
+		data[i + 2] = b;
+	}
+	return imageData;
+};
+
 /**
- * 使用 Canvas 2D 导出带滤镜的图片
+ * 使用 Canvas 2D 导出带滤镜的图片（像素级处理，兼容微信小程序真机）
  * @param {string} canvasSelector - 如 '#exportCanvas'
  * @param {string} imagePath - 本地图片路径
- * @param {string} filterCss - CSS filter 字符串
+ * @param {object} effects - buildFilterEffects 返回值
  * @param {object} componentInstance - getCurrentInstance()，用于 createSelectorQuery().in()
  */
-export const exportImageWithFilter = (canvasSelector, imagePath, filterCss, componentInstance) => {
+export const exportImageWithFilter = (canvasSelector, imagePath, effects, componentInstance) => {
 	return new Promise((resolve, reject) => {
 		if (!imagePath) {
 			reject(new Error('图片路径为空'));
@@ -32,6 +148,8 @@ export const exportImageWithFilter = (canvasSelector, imagePath, filterCss, comp
 
 				const ctx = canvas.getContext('2d');
 				const img = canvas.createImage();
+				const filterEffects = effects || {};
+				const needPixelFilter = !isIdentityFilterEffects(filterEffects);
 
 				img.onload = () => {
 					let width = img.width;
@@ -45,13 +163,26 @@ export const exportImageWithFilter = (canvasSelector, imagePath, filterCss, comp
 					}
 
 					const dpr = uni.getSystemInfoSync().pixelRatio || 2;
-					canvas.width = width * dpr;
-					canvas.height = height * dpr;
+					const canvasWidth = width * dpr;
+					const canvasHeight = height * dpr;
+					canvas.width = canvasWidth;
+					canvas.height = canvasHeight;
 					ctx.setTransform(1, 0, 0, 1, 0, 0);
-					ctx.scale(dpr, dpr);
-					ctx.clearRect(0, 0, width, height);
-					ctx.filter = filterCss && filterCss !== 'none' ? filterCss : 'none';
-					ctx.drawImage(img, 0, 0, width, height);
+					ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+					ctx.filter = 'none';
+					ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+
+					if (needPixelFilter) {
+						try {
+							const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+							applyFilterToImageData(imageData, filterEffects);
+							ctx.putImageData(imageData, 0, 0);
+						} catch (e) {
+							console.warn('[exportImageWithFilter] getImageData failed', e);
+							reject(new Error('滤镜处理失败，请换一张图片重试'));
+							return;
+						}
+					}
 
 					const options = {
 						canvas,

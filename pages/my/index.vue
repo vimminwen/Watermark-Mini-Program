@@ -1,27 +1,19 @@
 <template>
 	<dark-page-meta />
-	<view class="my-page">
+	<view class="my-page" :class="themeClass">
 		<view class="user-section" @click="goToUserCenter">
 			<view class="user-info">
-				<image
-					class="avatar"
-					:src="displayAvatar"
-					mode="aspectFit"
-					@error="onAvatarError"
-				></image>
+				<image class="avatar" :src="displayAvatar" mode="aspectFit" @error="onAvatarError"></image>
 				<view class="user-text">
 					<text class="username">{{ isLoggedIn ? userProfile.nickname : '点击登录' }}</text>
-					<text v-if="showUserLevel" class="user-level">{{ userProfile.level }}</text>
+					<!-- <text v-if="showUserLevel" class="user-level">{{ userProfile.level }}</text> -->
 				</view>
 			</view>
 		</view>
-		
+
 		<view class="member-section boxBg">
-			<view
-				class="member-header"
-				:class="{ 'member-header--tap': showMemberOpenCta }"
-				@click="handleMemberHeaderClick"
-			>
+			<view class="member-header" :class="{ 'member-header--tap': showMemberOpenCta }"
+				@click="handleMemberHeaderClick">
 				<view class="member-badge" :class="{ inactive: !isVipActive }">
 					<text class="badge-icon">{{ isVipActive ? '👑' : '✨' }}</text>
 					<view class="badge-level">{{ memberBadgeLabel }}</view>
@@ -46,7 +38,7 @@
 					</view>
 				</view>
 			</view>
-			
+
 			<view class="member-benefits">
 				<view class="benefit-item">
 					<text class="benefit-icon">🎨</text>
@@ -63,7 +55,7 @@
 					<text class="benefit-text">云端存储</text>
 				</view>
 			</view>
-			
+
 			<view class="member-actions">
 				<view class="action-card" @click="goToRecharge">
 					<view class="action-icon-wrap action-recharge">
@@ -85,21 +77,16 @@
 				</view>
 			</view>
 		</view>
-		
+
 		<view class="menu-container" v-for="category in menuCategories" :key="category.id">
 			<view class="menu-title">
 				<view class="title-line" :class="category.id === '1' ? 'line-blue' : 'line-pink'"></view>
 				<text class="title-text">{{ category.title }}</text>
 			</view>
-			
+
 			<view class="menu-list">
-				<view 
-					class="menu-item boxBg" 
-					v-for="item in category.children" 
-					:key="item.id"
-					v-show="item.show === '1'"
-					@click="handleMenuClick(item)"
-				>
+				<view class="menu-item boxBg" v-for="item in category.children" :key="item.id"
+					v-show="item.show === '1'" @click="handleMenuClick(item)">
 					<view class="menu-left">
 						<text class="menu-icon">{{ item.icon }}</text>
 						<text class="menu-text">{{ item.title }}</text>
@@ -108,20 +95,32 @@
 				</view>
 			</view>
 		</view>
-		
-		<view class="version-info">
-			<text class="version-text">云途汇水印 v1.0.0</text>
-		</view>
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
-	import { computed, ref } from 'vue'
-	import { onShow } from '@dcloudio/uni-app'
+	import {
+		usePageTheme
+	} from '@/utils/theme/useTheme.js'
+
+	const {
+		themeClass
+	} = usePageTheme()
+	import {
+		computed,
+		ref
+	} from 'vue'
+	import {
+		onShow
+	} from '@dcloudio/uni-app'
 	import myMenu from '@/api/data/myMenu.json'
-	import { apiGetUserInfo } from '@/api/api.js'
-	import { hasValidToken } from '@/utils/request.js'
+	import {
+		apiGetUserInfo
+	} from '@/api/api.js'
+	import {
+		hasValidToken
+	} from '@/utils/request.js'
 	import {
 		useVipInfo,
 		getMembershipUsedPercent,
@@ -146,9 +145,14 @@
 
 	const isLoggedIn = ref(false)
 	const avatarErrored = ref(false)
-	const userProfile = ref({ ...defaultProfile })
+	const userProfile = ref({
+		...defaultProfile
+	})
 
-	const { userVipInfo, getVipInfo } = useVipInfo()
+	const {
+		userVipInfo,
+		getVipInfo
+	} = useVipInfo()
 
 	const isVipActive = computed(() => userVipInfo.value.ifVip)
 
@@ -258,8 +262,13 @@
 		const userId = uni.getStorageSync('userIdStorage')
 		if (!hasValidToken() || !userId) {
 			isLoggedIn.value = false
-			userProfile.value = { ...defaultProfile }
-			userVipInfo.value = { ifVip: false, vipDetail: null }
+			userProfile.value = {
+				...defaultProfile
+			}
+			userVipInfo.value = {
+				ifVip: false,
+				vipDetail: null
+			}
 			return
 		}
 
@@ -297,7 +306,10 @@
 
 	const loadMemberInfo = async () => {
 		if (!hasValidToken() || !uni.getStorageSync('userIdStorage')) {
-			userVipInfo.value = { ifVip: false, vipDetail: null }
+			userVipInfo.value = {
+				ifVip: false,
+				vipDetail: null
+			}
 			return
 		}
 		try {
@@ -306,10 +318,16 @@
 			if (isVipActive.value && detail) {
 				const level = detail.planName || detail.model || detail.typeLabel
 				if (level) {
-					userProfile.value = { ...userProfile.value, level: String(level) }
+					userProfile.value = {
+						...userProfile.value,
+						level: String(level)
+					}
 				}
 			} else if (isLoggedIn.value) {
-				userProfile.value = { ...userProfile.value, level: '普通用户' }
+				userProfile.value = {
+					...userProfile.value,
+					level: '普通用户'
+				}
 			}
 		} catch (err) {
 			console.warn('[loadMemberInfo]', err)
@@ -349,8 +367,19 @@
 	}
 
 	const goToCancel = () => {
-		uni.navigateTo({
-			url: '/pages/member/cancel'
+		uni.showModal({
+			title: '提示',
+			content: '退订会员立即生效，下月起不再扣费。',
+			cancelColor: '#b9b9b9',
+			confirmColor: '#07b85b',
+			success: (res) => {
+				if (!res.confirm) return
+				uni.showModal({
+					title: '退订成功',
+					content: '下月起不再扣费',
+					showCancel: false
+				})
+			}
 		})
 	}
 
@@ -377,39 +406,39 @@
 	.my-page {
 		min-height: 100vh;
 		padding: 0 30rpx 120rpx;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.user-section {
 		padding: 40rpx 0;
-		
+
 		.user-info {
 			display: flex;
 			align-items: center;
-			
+
 			.avatar {
 				width: 120rpx;
 				height: 120rpx;
 				border-radius: 60rpx;
 				margin-right: 25rpx;
-				background: rgba(255, 255, 255, 0.1);
+				background: var(--surface-bg);
 			}
-			
+
 			.user-text {
 				display: flex;
 				flex-direction: column;
-				
+
 				.username {
 					font-size: 34rpx;
 					font-weight: bold;
-					color: #ffffff;
+					color: var(--text-primary);
 					margin-bottom: 10rpx;
 				}
-				
+
 				.user-level {
 					font-size: 26rpx;
-					color: rgba(255, 255, 255, 0.7);
-					background: rgba(255, 255, 255, 0.1);
+					color: var(--text-secondary);
+					background: var(--surface-bg);
 					padding: 5rpx 20rpx;
 					border-radius: 20rpx;
 					display: inline-block;
@@ -422,20 +451,20 @@
 		padding: 30rpx;
 		border-radius: 20rpx;
 		margin-bottom: 30rpx;
-		background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+		background: linear-gradient(135deg, var(--surface-bg) 0%, var(--surface-bg-light) 100%);
 		backdrop-filter: blur(20rpx);
-		
+
 		.member-header {
 			display: flex;
 			align-items: center;
 			padding-bottom: 25rpx;
-			border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+			border-bottom: 1rpx solid var(--border-color);
 			margin-bottom: 25rpx;
 
 			&--tap:active {
 				opacity: 0.88;
 			}
-			
+
 			.member-badge {
 				display: flex;
 				flex-direction: column;
@@ -449,18 +478,18 @@
 				box-shadow: 0 8rpx 32rpx rgba(255, 215, 0, 0.3);
 
 				&.inactive {
-					background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12));
+					background: linear-gradient(135deg, var(--surface-bg-strong), var(--surface-bg));
 					box-shadow: none;
 
 					.badge-level {
-						color: rgba(255, 255, 255, 0.85);
+						color: var(--text-soft);
 					}
 				}
-				
+
 				.badge-icon {
 					font-size: 40rpx;
 				}
-				
+
 				.badge-level {
 					font-size: 18rpx;
 					font-weight: bold;
@@ -468,26 +497,26 @@
 					margin-top: 2rpx;
 				}
 			}
-			
+
 			.member-info {
 				flex: 1;
 				display: flex;
 				flex-direction: column;
-				
+
 				.member-title {
 					font-size: 34rpx;
 					font-weight: bold;
-					color: #ffffff;
+					color: var(--text-primary);
 					margin-bottom: 10rpx;
 				}
-				
+
 				.member-detail {
 					display: flex;
 					flex-direction: column;
-					
+
 					.member-expire {
 						font-size: 24rpx;
-						color: rgba(255, 255, 255, 0.7);
+						color: var(--text-secondary);
 						margin-bottom: 8rpx;
 					}
 
@@ -512,19 +541,19 @@
 							color: #4facfe;
 						}
 					}
-					
+
 					.member-progress {
 						display: flex;
 						align-items: center;
 						gap: 15rpx;
-						
+
 						.progress-bar {
 							flex: 1;
 							height: 8rpx;
-							background: rgba(255, 255, 255, 0.2);
+							background: var(--surface-bg-strong);
 							border-radius: 4rpx;
 							overflow: hidden;
-							
+
 							.progress-fill {
 								height: 100%;
 								background: linear-gradient(90deg, #4facfe, #00f2fe);
@@ -532,84 +561,84 @@
 								transition: width 0.5s ease;
 							}
 						}
-						
+
 						.progress-text {
 							font-size: 22rpx;
-							color: rgba(255, 255, 255, 0.6);
+							color: var(--text-subtle);
 							min-width: 100rpx;
 							text-align: right;
 						}
 					}
 				}
 			}
-			
+
 			.member-arrow {
 				width: 40rpx;
 				height: 40rpx;
 				display: flex;
 				align-items: center;
 				justify-content: center;
-				background: rgba(255, 255, 255, 0.1);
+				background: var(--surface-bg);
 				border-radius: 50%;
-				
+
 				.icon-xiangyou {
 					font-size: 32rpx;
-					color: rgba(255, 255, 255, 0.6);
+					color: var(--text-subtle);
 				}
 			}
 		}
-		
+
 		.member-benefits {
 			display: flex;
 			align-items: center;
 			justify-content: space-around;
 			padding: 25rpx 0;
-			border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+			border-bottom: 1rpx solid var(--border-color);
 			margin-bottom: 25rpx;
-			
+
 			.benefit-item {
 				display: flex;
 				flex-direction: column;
 				align-items: center;
 				gap: 8rpx;
-				
+
 				.benefit-icon {
 					font-size: 36rpx;
 				}
-				
+
 				.benefit-text {
 					font-size: 22rpx;
-					color: rgba(255, 255, 255, 0.8);
+					color: var(--text-soft);
 				}
 			}
-			
+
 			.benefit-divider {
 				width: 1rpx;
 				height: 50rpx;
-				background: rgba(255, 255, 255, 0.1);
+				background: var(--surface-bg);
 			}
 		}
-		
+
 		.member-actions {
 			display: grid;
 			grid-template-columns: repeat(3, 1fr);
 			gap: 16rpx;
 		}
-		
+
 		.action-card {
 			display: flex;
 			flex-direction: column;
 			align-items: center;
 			padding: 20rpx 10rpx;
-			background: rgba(255, 255, 255, 0.05);
+			background: var(--surface-bg-light);
 			border-radius: 16rpx;
 			transition: all 0.3s ease;
-			
+
 			&:active {
 				transform: scale(0.95);
-				background: rgba(255, 255, 255, 0.1);
+				background: var(--surface-bg);
 			}
-			
+
 			.action-icon-wrap {
 				width: 60rpx;
 				height: 60rpx;
@@ -618,27 +647,27 @@
 				justify-content: center;
 				border-radius: 14rpx;
 				margin-bottom: 12rpx;
-				
+
 				&.action-recharge {
 					background: linear-gradient(135deg, rgba(79, 172, 254, 0.3), rgba(0, 242, 254, 0.3));
 				}
-				
+
 				&.action-cancel {
 					background: linear-gradient(135deg, rgba(255, 100, 100, 0.3), rgba(255, 50, 50, 0.3));
 				}
-				
+
 				&.action-orders {
 					background: linear-gradient(135deg, rgba(255, 180, 100, 0.3), rgba(255, 150, 50, 0.3));
 				}
 			}
-			
+
 			.action-icon {
 				font-size: 28rpx;
 			}
-			
+
 			.action-text {
 				font-size: 22rpx;
-				color: rgba(255, 255, 255, 0.9);
+				color: var(--text-dim);
 				text-align: center;
 			}
 		}
@@ -646,40 +675,40 @@
 
 	.menu-container {
 		margin-bottom: 40rpx;
-		
+
 		.menu-title {
 			display: flex;
 			align-items: center;
 			margin-bottom: 20rpx;
-			
+
 			.title-line {
 				width: 8rpx;
 				height: 35rpx;
 				border-radius: 4rpx;
 				margin-right: 15rpx;
 			}
-			
+
 			.line-blue {
 				background: linear-gradient(to bottom, #4facfe, #00f2fe);
 			}
-			
+
 			.line-pink {
 				background: linear-gradient(to bottom, #fa709a, #fee140);
 			}
-			
+
 			.title-text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
-		
+
 		.menu-list {
 			display: flex;
 			flex-direction: column;
 			gap: 15rpx;
 		}
-		
+
 		.menu-item {
 			display: flex;
 			align-items: center;
@@ -687,40 +716,30 @@
 			padding: 30rpx;
 			border-radius: 16rpx;
 			transition: all 0.3s ease;
-			
+
 			&:active {
 				transform: scale(0.98);
 			}
-			
+
 			.menu-left {
 				display: flex;
 				align-items: center;
-				
+
 				.menu-icon {
 					font-size: 40rpx;
 					margin-right: 20rpx;
 				}
-				
+
 				.menu-text {
 					font-size: 30rpx;
-					color: #ffffff;
+					color: var(--text-primary);
 				}
 			}
-			
+
 			.icon-xiangyou {
 				font-size: 28rpx;
-				color: rgba(255, 255, 255, 0.5);
+				color: var(--text-muted);
 			}
-		}
-	}
-
-	.version-info {
-		text-align: center;
-		padding: 40rpx 0;
-		
-		.version-text {
-			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
 		}
 	}
 </style>

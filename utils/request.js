@@ -80,9 +80,9 @@ export function isAuthExemptRequest(url, method = 'GET') {
 	const path = normalizeRequestPath(url);
 	const upperMethod = String(method).toUpperCase();
 
-	// 微信 openId、手机号解密
+	// 微信 openId、手机号
 	if (path.startsWith('/user/openId/')) return true;
-	if (path === '/wx/decryptPhone') return true;
+	if (path === '/wx/getPhoneNumber') return true;
 
 	// 账号密码登录、手机号快捷登录
 	if (path === '/uaa' && upperMethod === 'POST') return true;

@@ -1,9 +1,9 @@
 <template>
 	<dark-page-meta />
-	<view class="ocr-page">
+	<view class="ocr-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @click="chooseImage">
-				<text class="empty-icon">📷</text>
+				<text class="iconfont icon-zhuanwenzi_fill empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
 				<text class="empty-desc">支持相册或拍照</text>
 			</view>
@@ -19,8 +19,8 @@
 			<view class="tool-chip" @click="chooseImage">
 				<text>{{ imagePath ? '🔄 换一张' : '📁 选择图片' }}</text>
 			</view>
-			<view v-if="imagePath" class="tool-chip danger" @click="resetAll">
-				<text>清空</text>
+			<view v-if="imagePath && !showResultPanel" class="tool-chip danger" @click="resetAll">
+				<text>清空图片</text>
 			</view>
 		</view>
 
@@ -30,7 +30,11 @@
 				:class="{ disabled: processing }"
 				@click="handleExtract"
 			>
-				<text>{{ processing ? '识别中...' : (resultText ? '重新识别' : '开始提取文字') }}</text>
+				<processing-text
+					:active="processing"
+					text="识别中"
+					:idle-text="resultText ? '重新识别' : '开始提取文字'"
+				/>
 			</view>
 		</view>
 
@@ -44,6 +48,7 @@
 				<text class="char-count">{{ resultText.length }} 字</text>
 			</view>
 			<textarea
+				:key="resultEditorKey"
 				class="result-editor"
 				:value="resultText"
 				:focus="editorFocus"
@@ -63,22 +68,27 @@
 					<text>复制全文</text>
 				</view>
 				<view class="action-chip" @click="clearResult">
-					<text>清空结果</text>
+					<text>清空内容</text>
 				</view>
 			</view>
 		</view>
 
 		<tool-tips-card :tips="tips" />
+		<!-- 上传日志（调试时取消注释）
 		<debug-log-panel
 			:logs="debugLogs"
 			:scroll-top="debugScrollTop"
 			@clear="clearDebugLogs"
 		/>
+		-->
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiImageTextExtraction, apiGetAiLog } from '@/api/api.js'
@@ -86,7 +96,7 @@
 	import { checkLogin } from '@/utils/user/auth.js'
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 	import { pickLocalImage, handlePickLocalImageError } from '@/utils/image/pickLocalImage.js'
-	import { pollAiLogResult, resolveAiLogText } from '@/utils/ai/aiLog.js'
+	import { pollAiLogResult, resolveAiLogText, normalizeAiText } from '@/utils/ai/aiLog.js'
 	import {
 		buildImageTextExtractionPayload,
 		parseImageTextSubmit
@@ -107,6 +117,7 @@
 	const imagePath = ref('')
 	const resultText = ref('')
 	const showResultPanel = ref(false)
+	const resultEditorKey = ref(0)
 	const editorFocus = ref(false)
 	const processing = ref(false)
 	const originSize = ref({ width: 0, height: 0 })
@@ -115,7 +126,7 @@
 		'选择含清晰文字的图片，横排印刷体识别率更高',
 		'支持中英文混排，复杂背景可能略有误差',
 		'识别结果可点击修改，再复制或分享',
-		'图片将上传至服务端进行 AI 识别'
+		'图片将上传至服务端进行识别'
 	]
 
 	const onResultInput = (e) => {
@@ -172,8 +183,8 @@
 
 	const clearResult = () => {
 		resultText.value = ''
-		showResultPanel.value = false
 		editorFocus.value = false
+		resultEditorKey.value += 1
 	}
 
 	const previewImage = () => {
@@ -227,7 +238,7 @@
 			const { text: syncText, aiLogId } = parseImageTextSubmit(body)
 			let text = syncText
 
-			if (aiLogId) {
+			if (!text && aiLogId) {
 				logStep(`3/3 轮询任务结果 (id=${aiLogId})`)
 				showTaskLoading({ title: '识别中，请稍候...', mask: true })
 				text = await pollAiLogResult(apiGetAiLog, aiLogId, {
@@ -240,15 +251,18 @@
 					}
 				})
 				logOk(`识别完成，${text.length} 字`)
-			} else {
-				logOk(`同步返回，${text?.length || 0} 字`)
+			} else if (text) {
+				logOk(`同步返回，${text.length} 字`)
 			}
+
+			text = normalizeAiText(text)
 
 			if (!text) {
 				throw new Error('未识别到文字内容')
 			}
 
 			resultText.value = text
+			resultEditorKey.value += 1
 			showResultPanel.value = true
 			uni.showToast({ title: '识别完成，可点击编辑', icon: 'success' })
 		} catch (err) {
@@ -267,7 +281,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.preview-card {
@@ -294,17 +308,21 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -386,7 +404,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {
@@ -430,13 +448,13 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
 	.char-count {
 		font-size: 24rpx;
-		color: rgba(255, 255, 255, 0.45);
+		color: var(--text-muted);
 	}
 
 	.result-editor {
@@ -450,11 +468,11 @@
 		border: 2rpx solid rgba(79, 172, 254, 0.25);
 		font-size: 28rpx;
 		line-height: 1.7;
-		color: rgba(255, 255, 255, 0.92);
+		color: var(--text-dim);
 	}
 
 	:deep(.result-editor-placeholder) {
-		color: rgba(255, 255, 255, 0.35);
+		color: var(--text-faint);
 		font-size: 28rpx;
 	}
 

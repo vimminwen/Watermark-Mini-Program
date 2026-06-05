@@ -6,7 +6,7 @@
 
 		"cid": "103",
 
-		"img": "/static/images/box.png",
+		"img": "icon-tupianbianji",
 
 		"title": "图片编辑",
 
@@ -32,11 +32,11 @@
 
 		"cid": "102",
 
-		"img": "/static/images/box.png",
+		"img": "icon-shengchengAI3",
 
 		"title": "智能消除笔",
 
-		"content": "AI智能识别并移除图片中不需要的物体、水印、文字或人物，自动填充背景不留痕迹。",
+		"content": "智能识别并移除图片中不需要的物体、水印、文字或人物，自动填充背景不留痕迹。",
 
 		"reader": "0",
 
@@ -58,17 +58,17 @@
 
 		"cid": "102",
 
-		"img": "/static/images/box.png",
+		"img": "icon-koutu",
 
 		"title": "智能抠图",
 
-		"content": "AI精准识别主体轮廓，一键去除背景，支持人像、商品、动物等复杂边缘精细抠图。",
+		"content": "精准识别主体轮廓，一键去除背景，支持人像、商品、动物等复杂边缘精细抠图。",
 
 		"reader": "0",
 
 		"url": "/pages/tool/cutout",
 
-		"location": "2",
+		"location": "1",
 
 		"sort": "10",
 
@@ -84,11 +84,11 @@
 
 		"cid": "106",
 
-		"img": "/static/images/box.png",
+		"img": "icon-tupianchuli",
 
 		"title": "图片动漫化",
 
-		"content": "一键将真实照片转换为二次元动漫风格，支持日系、新海诚、宫崎骏等多种动漫画风。",
+		"content": "一键将真实照片转换为二次元动漫风格，快速生成好看的动漫画风。",
 
 		"reader": "0",
 
@@ -96,7 +96,7 @@
 
 		"location": "2",
 
-		"sort": "11",
+		"sort": "101",
 
 		"my": "1",
 
@@ -110,11 +110,11 @@
 
 		"cid": "105",
 
-		"img": "/static/images/box.png",
+		"img": "icon-post_video",
 
 		"title": "视频消除",
 
-		"content": "AI智能去除视频中不需要的物体、水印、字幕或人物，自动填充背景，保持视频流畅。",
+		"content": "智能去除视频中不需要的字幕，自动填充背景，保持视频流畅。",
 
 		"reader": "0",
 
@@ -136,7 +136,7 @@
 
 		"cid": "104",
 
-		"img": "/static/images/box.png",
+		"img": "icon-shipinzhuanwenzi",
 
 		"title": "视频转文字",
 
@@ -162,7 +162,7 @@
 
 		"cid": "104",
 
-		"img": "/static/images/box.png",
+		"img": "icon-zhuanwenzi_fill",
 
 		"title": "音频转文字",
 
@@ -178,7 +178,7 @@
 
 		"my": "1",
 
-		"del": "0"
+		"del": "1"
 
 	},
 
@@ -188,11 +188,11 @@
 
 		"cid": "102",
 
-		"img": "/static/images/box.png",
+		"img": "icon-fangda-",
 
 		"title": "无损放大",
 
-		"content": "AI智能算法放大图片分辨率，同时保持清晰度不模糊，最高支持4倍无损放大。",
+		"content": "智能算法放大图片分辨率，同时保持清晰度不模糊，最高支持4倍无损放大。",
 
 		"reader": "0",
 
@@ -214,7 +214,7 @@
 
 		"cid": "106",
 
-		"img": "/static/images/box.png",
+		"img": "icon-tupianchuli",
 
 		"title": "图片赛博化",
 
@@ -226,7 +226,7 @@
 
 		"location": "2",
 
-		"sort": "18",
+		"sort": "102",
 
 		"my": "1",
 
@@ -240,7 +240,7 @@
 
 		"cid": "106",
 
-		"img": "/static/images/box.png",
+		"img": "icon-tupianchuli",
 
 		"title": "图片古风化",
 
@@ -252,7 +252,7 @@
 
 		"location": "2",
 
-		"sort": "19",
+		"sort": "103",
 
 		"my": "1",
 
@@ -266,7 +266,7 @@
 
 		"cid": "103",
 
-		"img": "/static/images/box.png",
+		"img": "icon-compress-image",
 
 		"title": "图片压缩",
 
@@ -292,7 +292,7 @@
 
 		"cid": "104",
 
-		"img": "/static/images/box.png",
+		"img": "icon-zhuanwenzi_fill",
 
 		"title": "图片提取文字",
 
@@ -318,7 +318,7 @@
 
 		"cid": "103",
 
-		"img": "/static/images/box.png",
+		"img": "icon-jianqie",
 
 		"title": "图片剪切",
 
@@ -344,7 +344,7 @@
 
 		"cid": "103",
 
-		"img": "/static/images/box.png",
+		"img": "icon-lvjing",
 
 		"title": "图片滤镜",
 

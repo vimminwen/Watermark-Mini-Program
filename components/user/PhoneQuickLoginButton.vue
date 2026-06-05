@@ -9,7 +9,7 @@
 			@getphonenumber="onGetPhoneNumber"
 		>
 			<slot :loading="loading">
-				<text v-if="icon" class="phone-quick-login__icon">{{ icon }}</text>
+				<!-- <text v-if="icon" class="phone-quick-login__icon">{{ icon }}</text> -->
 				<text class="phone-quick-login__text">{{ loading ? loadingText : btnText }}</text>
 			</slot>
 		</button>
@@ -48,7 +48,7 @@
 		/** 按钮文案 */
 		btnText: {
 			type: String,
-			default: '微信手机号快捷登录'
+			default: '手机号快捷登录'
 		},
 		loadingText: {
 			type: String,
@@ -165,9 +165,9 @@
 			return
 		}
 
-		if (!detail.encryptedData && !detail.code) {
-			console.warn('[PhoneQuickLoginButton] 无手机号凭证:', detail)
-			emit('fail', { message: '未获取到手机号凭证', detail })
+		if (!detail.code) {
+			console.warn('[PhoneQuickLoginButton] 无手机号 code:', detail)
+			emit('fail', { message: '未获取到手机号授权，请使用真机重试', detail })
 			return
 		}
 
@@ -237,8 +237,8 @@
 	}
 
 	.phone-quick-login__btn--unsupported {
-		background: rgba(255, 255, 255, 0.06);
-		border-color: rgba(255, 255, 255, 0.15);
+		background: var(--surface-bg-light);
+		border-color: var(--border-color);
 	}
 
 	.phone-quick-login__icon {
@@ -249,7 +249,7 @@
 	.phone-quick-login__text {
 		font-size: 30rpx;
 		font-weight: 600;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 
 	.phone-quick-login__tip {
@@ -257,7 +257,7 @@
 		margin-top: 16rpx;
 		text-align: center;
 		font-size: 22rpx;
-		color: rgba(255, 255, 255, 0.45);
+		color: var(--text-muted);
 		line-height: 1.5;
 	}
 </style>

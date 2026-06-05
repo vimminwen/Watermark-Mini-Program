@@ -54,7 +54,7 @@
 	}
 
 	.sk-shimmer {
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--surface-bg);
 		animation: sk-pulse 1.4s ease-in-out infinite;
 	}
 
@@ -128,7 +128,7 @@
 			width: 60rpx;
 			height: 60rpx;
 			border-radius: 12rpx;
-			background: rgba(255, 255, 255, 0.06);
+			background: var(--surface-bg-light);
 			margin-bottom: 15rpx;
 		}
 
@@ -136,7 +136,7 @@
 			width: 80rpx;
 			height: 24rpx;
 			border-radius: 6rpx;
-			background: rgba(255, 255, 255, 0.06);
+			background: var(--surface-bg-light);
 		}
 	}
 
@@ -155,7 +155,7 @@
 			width: 70rpx;
 			height: 70rpx;
 			border-radius: 14rpx;
-			background: rgba(255, 255, 255, 0.06);
+			background: var(--surface-bg-light);
 			margin-right: 20rpx;
 			flex-shrink: 0;
 		}
@@ -167,7 +167,7 @@
 				width: 55%;
 				height: 30rpx;
 				border-radius: 8rpx;
-				background: rgba(255, 255, 255, 0.06);
+				background: var(--surface-bg-light);
 				margin-bottom: 14rpx;
 			}
 
@@ -175,7 +175,7 @@
 				width: 90%;
 				height: 24rpx;
 				border-radius: 6rpx;
-				background: rgba(255, 255, 255, 0.05);
+				background: var(--surface-bg-light);
 			}
 		}
 	}

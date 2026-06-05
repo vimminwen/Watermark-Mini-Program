@@ -55,7 +55,7 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -84,7 +84,7 @@
 		.tip-text {
 			flex: 1;
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.65);
+			color: var(--text-subtle);
 			line-height: 1.5;
 		}
 	}

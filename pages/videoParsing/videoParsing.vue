@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="video-parse-page">
+	<view class="video-parse-page" :class="themeClass">
 		<view class="input-card boxBg">
 			<view class="section-label">
 				<view class="label-line"></view>
@@ -78,16 +78,21 @@
 			</view>
 		</view>
 
+		<!-- 上传日志（调试时取消注释）
 		<debug-log-panel
 			:logs="debugLogs"
 			:scroll-top="debugScrollTop"
 			@clear="clearDebugLogs"
 		/>
+		-->
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 	import { apiParseVideo } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
@@ -266,7 +271,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.section-label {
@@ -289,7 +294,7 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -307,13 +312,13 @@
 		padding: 24rpx;
 		box-sizing: border-box;
 		font-size: 28rpx;
-		color: #ffffff;
-		background: rgba(255, 255, 255, 0.06);
+		color: var(--text-primary);
+		background: var(--surface-bg-light);
 		border-radius: 16rpx;
 		line-height: 1.5;
 
 		&::placeholder {
-			color: rgba(255, 255, 255, 0.35);
+			color: var(--text-faint);
 		}
 	}
 
@@ -355,7 +360,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {
@@ -382,14 +387,14 @@
 		.meta-title {
 			display: block;
 			font-size: 30rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			line-height: 1.5;
 			margin-bottom: 10rpx;
 		}
 
 		.meta-author {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.55);
+			color: var(--text-muted);
 		}
 	}
 
@@ -404,12 +409,12 @@
 			padding: 22rpx 0;
 			text-align: center;
 			border-radius: 40rpx;
-			background: rgba(255, 255, 255, 0.08);
-			border: 2rpx solid rgba(255, 255, 255, 0.15);
+			background: var(--surface-bg);
+			border: 2rpx solid var(--border-color);
 
 			text {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.9);
+				color: var(--text-dim);
 			}
 
 			&.primary {
@@ -454,7 +459,7 @@
 			.tip-text {
 				flex: 1;
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.65);
+				color: var(--text-subtle);
 				line-height: 1.5;
 			}
 		}

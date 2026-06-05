@@ -1,15 +1,10 @@
 <template>
 	<dark-page-meta />
-	<view class="home-page">
-		<HomeSkeleton v-if="pageLoading" />
-
-		<block v-else>
-		<!-- 轮播图 -->
+	<view class="home-page" :class="themeClass">
 		<view class="banner-section">
 			<Banner3D />
 		</view>
 
-		<!-- 快捷工具入口 -->
 		<view class="quick-tools">
 			<view class="section-title">
 				<view class="title-line"></view>
@@ -17,13 +12,12 @@
 			</view>
 			<view class="tools-grid">
 				<view class="tool-card boxBg" v-for="tool in quickTools" :key="tool.id" @click="navigateToTool(tool)">
-					<image class="tool-icon" :src="tool.img" mode="aspectFit"></image>
+					<text class="iconfont tool-icon" :class="tool.img"></text>
 					<text class="tool-name">{{ tool.title }}</text>
 				</view>
 			</view>
 		</view>
 
-		<!-- 更多工具列表 -->
 		<view class="all-tools">
 			<view class="section-title">
 				<view class="title-line"></view>
@@ -35,7 +29,7 @@
 				<navigator :url="getToolNavigateUrl(item)" class="tool-item boxBg"
 					v-for="(item, index) in moreTools" :key="item.id" :style="{ animationDelay: (index * 0.05) + 's' }">
 					<view class="item-left">
-						<image class="item-icon" :src="item.img" mode="aspectFit"></image>
+						<text class="iconfont item-icon" :class="item.img"></text>
 					</view>
 					<view class="item-right">
 						<view class="item-title">{{item.title}}</view>
@@ -45,7 +39,6 @@
 				</navigator>
 			</view>
 		</view>
-		</block>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -53,21 +46,20 @@
 <script setup>
 	import {
 		ref,
-		computed,
-		onMounted
+		computed
 	} from 'vue'
+	import { onLoad } from '@dcloudio/uni-app'
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
 	import Banner3D from '@/components/common/Banner3D.vue'
-	import HomeSkeleton from '@/components/common/HomeSkeleton.vue'
 	import dataList from '@/api/data/list.json'
 	import { buildToolUrl, filterQuickTools, filterMoreTools, navigateByPageUrl } from '@/utils/tool/toolRegistry.js'
 
-	const pageLoading = ref(true)
+	const { themeClass } = usePageTheme()
+
 	const toolList = ref([])
 
-	// 快捷工具（location 为 1）
 	const quickTools = computed(() => filterQuickTools(toolList.value))
 
-	// 更多工具（location 不为 1）
 	const moreTools = computed(() => filterMoreTools(toolList.value))
 
 	const getToolNavigateUrl = (item) => buildToolUrl(item)
@@ -76,29 +68,25 @@
 		navigateByPageUrl(getToolNavigateUrl(tool))
 	}
 
-	const loadHomeData = async () => {
-		pageLoading.value = true
+	const loadHomeData = () => {
 		try {
-			// 本地数据；后续可替换为接口请求
 			toolList.value = (dataList || []).filter((item) => item.del !== '1')
 		} catch (e) {
 			console.error('[loadHomeData]', e)
 			toolList.value = []
-		} finally {
-			pageLoading.value = false
 		}
 	}
 
-	onMounted(() => {
-		loadHomeData()
-	})
+	// tabBar 首页用 onLoad 更可靠；setup 同步加载避免骨架屏卡住
+	loadHomeData()
+	onLoad(loadHomeData)
 </script>
 
 <style lang="scss">
 	.home-page {
 		min-height: 100vh;
 		padding-bottom: 120rpx;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.banner-section {
@@ -126,7 +114,7 @@
 			.title-text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 
@@ -149,14 +137,17 @@
 				}
 
 				.tool-icon {
-					width: 60rpx;
-					height: 60rpx;
+					font-size: 60rpx;
 					margin-bottom: 15rpx;
+					background: linear-gradient(to bottom, #aa2267, #fe764e);
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					background-clip: text;
 				}
 
 				.tool-name {
 					font-size: 26rpx;
-					color: #ffffff;
+					color: var(--text-primary);
 					text-align: center;
 					line-height: 1.4;
 				}
@@ -183,12 +174,12 @@
 			.title-text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 
 			.tool-count {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.7);
+				color: var(--text-secondary);
 				margin-left: 10rpx;
 			}
 		}
@@ -216,8 +207,11 @@
 				margin-right: 20rpx;
 
 				.item-icon {
-					width: 70rpx;
-					height: 70rpx;
+					font-size: 70rpx;
+					background: linear-gradient(to bottom, #aa2267, #fe764e);
+					-webkit-background-clip: text;
+					-webkit-text-fill-color: transparent;
+					background-clip: text;
 				}
 			}
 
@@ -228,13 +222,13 @@
 				.item-title {
 					font-size: 30rpx;
 					font-weight: 600;
-					color: #ffffff;
+					color: var(--text-primary);
 					margin-bottom: 8rpx;
 				}
 
 				.item-content {
 					font-size: 26rpx;
-					color: rgba(255, 255, 255, 0.7);
+					color: var(--text-secondary);
 					line-height: 1.4;
 					overflow: hidden;
 					text-overflow: ellipsis;
@@ -246,7 +240,7 @@
 
 			.icon-xiangyou {
 				font-size: 28rpx;
-				color: rgba(255, 255, 255, 0.5);
+				color: var(--text-muted);
 				margin-left: 15rpx;
 			}
 		}

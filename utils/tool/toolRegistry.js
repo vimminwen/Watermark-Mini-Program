@@ -55,7 +55,7 @@ export const filterToolsByCategory = (list, cid) => {
 };
 
 export const BACKEND_REQUIRED_MESSAGE =
-	'该功能依赖服务端 AI 与算力，小程序端无法独立完成，请等待后续版本接入。';
+	'该功能依赖服务端算力，小程序端无法独立完成，请等待后续版本接入。';
 
 export const getToolList = () => dataList.filter((item) => item.del !== '1');
 

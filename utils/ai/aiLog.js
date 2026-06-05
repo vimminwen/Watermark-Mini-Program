@@ -84,13 +84,14 @@ export const isAiLogFailed = (body) => {
 /** 任务是否已有可展示结果 */
 export const isAiLogReady = (body) => !!resolveAiLogResultUrl(body);
 
-/** 提交接口占位 text（如 "[]"）表示尚未完成，需用 aiLogId 轮询 */
+/** 提交接口占位 text（如 "[]"、"false"）表示尚未完成，需用 aiLogId 轮询 */
 export const isPlaceholderAiText = (value) => {
 	if (value == null) return true;
+	if (typeof value === 'boolean') return true;
 	const trimmed = String(value).trim();
 	if (!trimmed) return true;
 	if (trimmed === '[]' || trimmed === '{}') return true;
-	if (/^(null|undefined)$/i.test(trimmed)) return true;
+	if (/^(null|undefined|false|true)$/i.test(trimmed)) return true;
 	if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
 		try {
 			const parsed = JSON.parse(trimmed);
@@ -108,6 +109,14 @@ export const isPlaceholderAiText = (value) => {
 		}
 	}
 	return false;
+};
+
+/** 规范化 OCR/转写文本，过滤无效占位结果 */
+export const normalizeAiText = (value) => {
+	if (value == null || typeof value === 'boolean') return '';
+	const text = typeof value === 'string' ? value.trim() : flattenTextSegments(value);
+	if (!text || isPlaceholderAiText(text)) return '';
+	return text;
 };
 
 /** 将 JSON 字幕/分段数组拼成纯文本 */
@@ -154,7 +163,7 @@ export const flattenTextSegments = (payload) => {
 };
 
 const pickPlainText = (value) => {
-	if (value == null) return '';
+	if (value == null || typeof value === 'boolean') return '';
 	if (Array.isArray(value)) {
 		return flattenTextSegments(value);
 	}
@@ -186,6 +195,7 @@ export const resolveAiLogText = (body) => {
 	if (data && typeof data === 'object') {
 		const fields = [
 			data.text,
+			data.Text,
 			data.content,
 			data.result,
 			data.output,
@@ -211,21 +221,21 @@ export const resolveAiLogText = (body) => {
 };
 
 /** 任务是否已有文本结果 */
-export const isAiLogTextReady = (body) => !!resolveAiLogText(body);
+export const isAiLogTextReady = (body) => !!normalizeAiText(resolveAiLogText(body));
 
 /**
  * 解析图文/视频转文字提交响应：有效文本直接返回，否则用 aiLogId 轮询
  */
 export const parseTextTransformationSubmit = (body) => {
 	const aiLogId = extractAiLogId(body);
-	const text = resolveAiLogText(body);
-	if (text && !isPlaceholderAiText(text)) {
+	const text = normalizeAiText(resolveAiLogText(body));
+	if (text) {
 		return { text, aiLogId: '' };
 	}
 	return { text: '', aiLogId };
 };
 
-export const getAiLogErrorMessage = (body, fallback = 'AI 处理失败') => {
+export const getAiLogErrorMessage = (body, fallback = 'AI处理失败') => {
 	if (!body || typeof body !== 'object') return fallback;
 	const data = body.data;
 	if (data && typeof data === 'object') {
@@ -263,8 +273,14 @@ export const pollAiLogResult = async (fetchAiLog, aiLogId, options = {}) => {
 		}
 
 		const result = resolveResult(body);
-		if (result) {
-			return result;
+		const normalized =
+			options.resolve === resolveAiLogText
+				? normalizeAiText(result)
+				: typeof result === 'string'
+					? result.trim()
+					: result;
+		if (normalized) {
+			return normalized;
 		}
 
 		if (onProgress) {

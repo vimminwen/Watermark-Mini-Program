@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="edit-profile-page">
+	<view class="edit-profile-page" :class="themeClass">
 		<view v-if="!isLoggedIn" class="login-empty boxBg">
 			<text class="empty-text">请先登录后查看个人资料</text>
 			<button class="empty-btn" hover-class="empty-btn-hover" @tap="goToLogin">去登录</button>
@@ -71,6 +71,9 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref } from 'vue'
 	import { onShow } from '@dcloudio/uni-app'
 	import { apiGetUserInfo, apiModifyUserInfo } from '@/api/api.js'
@@ -374,7 +377,7 @@
 <style lang="scss">
 	.edit-profile-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 30rpx;
 		padding-bottom: 100rpx;
 	}
@@ -393,7 +396,7 @@
 				width: 200rpx;
 				height: 200rpx;
 				border-radius: 100rpx;
-				background: rgba(255, 255, 255, 0.1);
+				background: var(--surface-bg);
 				margin-bottom: 25rpx;
 			}
 
@@ -426,30 +429,30 @@
 			padding: 30rpx 0;
 
 			&:not(:last-child) {
-				border-bottom: 1rpx solid rgba(255, 255, 255, 0.1);
+				border-bottom: 1rpx solid var(--border-color);
 			}
 
 			.form-label {
 				font-size: 30rpx;
-				color: rgba(255, 255, 255, 0.7);
+				color: var(--text-secondary);
 				width: 150rpx;
 			}
 
 			.form-input {
 				flex: 1;
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 				text-align: right;
 
 				&::placeholder {
-					color: rgba(255, 255, 255, 0.4);
+					color: var(--text-faint);
 				}
 			}
 
 			.form-value {
 				flex: 1;
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 				text-align: right;
 			}
 
@@ -461,7 +464,7 @@
 
 			.icon-xiangyou {
 				font-size: 32rpx;
-				color: rgba(255, 255, 255, 0.4);
+				color: var(--text-faint);
 			}
 
 			&.form-item-link {
@@ -499,7 +502,7 @@
 			text {
 				font-size: 32rpx;
 				font-weight: bold;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 	}
@@ -535,7 +538,7 @@
 
 		.empty-text {
 			font-size: 30rpx;
-			color: rgba(255, 255, 255, 0.7);
+			color: var(--text-secondary);
 			margin-bottom: 40rpx;
 		}
 
@@ -544,7 +547,7 @@
 			border-radius: 50rpx;
 			background: linear-gradient(to right, #4facfe, #00f2fe);
 			font-size: 30rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			font-weight: 600;
 			line-height: 1.4;
 			border: none;

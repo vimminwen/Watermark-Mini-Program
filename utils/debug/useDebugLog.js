@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getApiMessage } from '@/utils/user/authHelper.js'
 
 const pad2 = (n) => (n < 10 ? `0${n}` : `${n}`)
 
@@ -30,6 +31,23 @@ export const formatErrDetail = (err) => {
 		}
 	}
 	return parts.join('\n')
+}
+
+/** 提取面向用户的错误文案（仅 message，不含 type/data 等调试信息） */
+export const resolveUserErrorMessage = (err, fallback = '操作失败') => {
+	if (!err) return fallback
+	if (typeof err === 'string') return err
+
+	const dataMsg =
+		err.data && typeof err.data === 'object' ? getApiMessage(err.data, '') : ''
+
+	return (
+		err.message ||
+		dataMsg ||
+		err.msg ||
+		err.errMsg ||
+		fallback
+	)
 }
 
 /** 任务进行中 loading（已关闭，便于查看页面调试日志） */
@@ -71,11 +89,12 @@ export const useDebugLog = (scope = 'app') => {
 	const logError = (text) => appendDebugLog('ERROR', text)
 
 	const showDebugError = (title, err) => {
+		const userMessage = resolveUserErrorMessage(err, title || '操作失败')
 		const detail = formatErrDetail(err)
 		appendDebugLog('ERROR', `${title}\n${detail}`)
 		uni.showModal({
 			title: title || '操作失败',
-			content: detail.slice(0, 800),
+			content: userMessage,
 			showCancel: false
 		})
 	}
@@ -91,6 +110,7 @@ export const useDebugLog = (scope = 'app') => {
 		logWarn,
 		logError,
 		showDebugError,
-		formatErrDetail
+		formatErrDetail,
+		resolveUserErrorMessage
 	}
 }

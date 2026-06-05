@@ -5,8 +5,11 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
 	import { onLoad } from '@dcloudio/uni-app'
 	import MediaTextExtractPanel from '@/components/tool/MediaTextExtractPanel.vue'
+
+	usePageTheme()
 
 	onLoad((options) => {
 		const title = options?.title

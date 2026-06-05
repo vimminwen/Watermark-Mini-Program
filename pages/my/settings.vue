@@ -1,7 +1,24 @@
 <template>
 	<dark-page-meta />
-	<view class="sub-page">
+	<view class="sub-page" :class="themeClass">
 		<view class="settings-list">
+			<!-- 主题切换（后续启用时取消注释）
+			<view class="settings-item boxBg theme-item">
+				<view class="item-left">
+					<text class="item-icon">{{ isLight ? '☀️' : '🌙' }}</text>
+					<text class="item-text">主题模式</text>
+				</view>
+				<view class="item-right theme-switch-wrap">
+					<text class="theme-label">{{ isLight ? '白天' : '暗夜' }}</text>
+					<switch
+						:checked="isLight"
+						color="#4facfe"
+						@change="handleThemeChange"
+					/>
+				</view>
+			</view>
+			-->
+
 			<view class="settings-item boxBg" @tap="handleClearCache">
 				<view class="item-left">
 					<text class="item-icon">💾</text>
@@ -40,15 +57,24 @@
 <script setup>
 	import { ref, onMounted } from 'vue'
 	import { apiDelUser } from '@/api/api.js'
+	// import { THEME_DARK, THEME_LIGHT } from '@/utils/theme/theme.js'
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
 	import { isApiSuccess } from '@/utils/user/authHelper.js'
 	import { clearAuthSession, getApiMessage } from '@/utils/user/session.js'
 	import { hasValidToken } from '@/utils/request.js'
 
 	const DEFAULT_VERSION = '1.0.0'
 
+	const { themeClass } = usePageTheme()
+	// const { isLight, setThemeMode, themeClass } = usePageTheme()
+
 	const deleting = ref(false)
 	const actionBusy = ref(false)
 	const appVersion = ref(DEFAULT_VERSION)
+
+	// const handleThemeChange = (event) => {
+	// 	setThemeMode(event.detail.value ? THEME_LIGHT : THEME_DARK)
+	// }
 
 	/** 使用 uni-app 官方 API 获取应用版本号，失败则用 1.0.0 */
 	const loadAppVersion = () => {
@@ -187,7 +213,7 @@
 <style lang="scss">
 	.sub-page {
 		min-height: 100vh;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 		padding: 30rpx;
 	}
 
@@ -215,7 +241,7 @@
 			
 			.item-text {
 				font-size: 30rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 		
@@ -225,16 +251,35 @@
 			
 			.version {
 				font-size: 26rpx;
-				color: rgba(255, 255, 255, 0.5);
+				color: var(--text-muted);
 				margin-right: 10rpx;
 			}
 		}
+
+		/* 主题切换样式（后续启用时取消注释）
+		.theme-switch-wrap {
+			gap: 16rpx;
+
+			.theme-label {
+				font-size: 26rpx;
+				color: var(--text-muted);
+			}
+		}
+		*/
 		
 		.icon-xiangyou {
 			font-size: 28rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
+
+	/* 主题切换样式（后续启用时取消注释）
+	.theme-item {
+		&:active {
+			transform: none;
+		}
+	}
+	*/
 
 	.danger-section {
 		margin-top: 60rpx;
@@ -242,7 +287,7 @@
 
 		.danger-title {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 			margin-bottom: 20rpx;
 		}
 
@@ -268,7 +313,7 @@
 			display: block;
 			margin-top: 20rpx;
 			font-size: 24rpx;
-			color: rgba(255, 255, 255, 0.4);
+			color: var(--text-faint);
 			text-align: center;
 			line-height: 1.5;
 		}

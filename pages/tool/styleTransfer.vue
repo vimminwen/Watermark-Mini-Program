@@ -1,16 +1,16 @@
 <template>
 	<dark-page-meta />
-	<view class="style-page">
+	<view class="style-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @tap="chooseImage">
-				<text class="empty-icon">📷</text>
+				<text class="iconfont icon-tupianchuli empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
 				<text class="empty-desc">支持 JPG / PNG，建议小于 5MB</text>
 			</view>
 			<view v-else class="preview-wrap" @tap="onPreviewTap">
 				<image class="preview-image" :src="displayImage" mode="aspectFit" />
 				<view class="size-badge">
-					<text v-if="resultPath">{{ preset.styleType }} · 点击预览</text>
+					<text v-if="resultPath">{{ selectedStyle?.name || preset.pageTitle }} · 点击预览</text>
 					<text v-else-if="originSize.width">{{ originSize.width }} × {{ originSize.height }}</text>
 				</view>
 			</view>
@@ -18,20 +18,44 @@
 
 		<view class="toolbar">
 			<view class="tool-chip" @tap="chooseImage">
-				<text>{{ imagePath ? '🔄 换一张' : '📁 选择图片' }}</text>
+				<text>{{ imagePath ? ' 换一张' : ' 选择图片' }}</text>
 			</view>
 			<view v-if="imagePath" class="tool-chip danger" @tap="resetAll">
 				<text>清空</text>
 			</view>
 		</view>
 
-		<view v-if="imagePath" class="settings-panel boxBg">
+		<view class="settings-panel boxBg">
 			<view class="section-label">
 				<view class="label-line line-pink"></view>
-				<text>风格：{{ preset.styleType }}</text>
+				<text>选择风格</text>
 			</view>
 
-			<view class="intensity-row">
+			<view v-if="stylesLoading" class="style-loading">
+				<processing-text text="加载风格" />
+			</view>
+			<view v-else-if="stylesError" class="style-error">
+				<text>{{ stylesError }}</text>
+				<view class="retry-btn" @tap="loadStyleOptions">
+					<text>重新加载</text>
+				</view>
+			</view>
+			<scroll-view v-else scroll-y class="style-scroll" :show-scrollbar="true">
+				<view
+					v-for="item in styleOptions"
+					:key="item.id"
+					class="style-item"
+					:class="{ active: selectedStyleId === item.id, disabled: processing }"
+					@tap="selectStyle(item)"
+				>
+					<text class="style-name">{{ item.name }}</text>
+					<text v-if="item.description" class="style-desc">{{ item.description }}</text>
+				</view>
+			</scroll-view>
+		</view>
+
+		<view v-if="imagePath" class="settings-panel boxBg action-panel">
+			<!-- <view class="intensity-row">
 				<text class="intensity-label">风格强度</text>
 				<slider
 					class="intensity-slider"
@@ -47,14 +71,18 @@
 					@change="onStrengthChange"
 				/>
 				<text class="intensity-value">{{ strengthPercent }}%</text>
-			</view>
+			</view> -->
 
 			<view
 				class="process-btn"
-				:class="{ disabled: processing }"
+				:class="{ disabled: processing || stylesLoading || !selectedStyle }"
 				@tap="handleProcess"
 			>
-				<text>{{ processing ? '生成中...' : (resultPath ? preset.reprocessText : preset.processText) }}</text>
+				<processing-text
+					:active="processing"
+					text="生成中"
+					:idle-text="resultPath ? preset.reprocessText : preset.processText"
+				/>
 			</view>
 			<view
 				v-if="resultPath"
@@ -67,16 +95,21 @@
 		</view>
 
 		<tool-tips-card :tips="preset.tips" />
+		<!-- 上传日志（调试时取消注释）
 		<debug-log-panel
 			:logs="debugLogs"
 			:scroll-top="debugScrollTop"
 			@clear="clearDebugLogs"
 		/>
+		-->
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed, reactive } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiCrossDimensionCamera, apiGetAiLog } from '@/api/api.js'
@@ -87,6 +120,7 @@
 	import {
 		getStylePreset,
 		buildStyleTransferPayload,
+		fetchStylesForPreset,
 		DEFAULT_STYLE_KEY,
 		DEFAULT_STRENGTH
 	} from '@/utils/image/styleTransfer.js'
@@ -108,7 +142,10 @@
 	const processing = ref(false)
 	const saving = ref(false)
 	const originSize = ref({ width: 0, height: 0 })
-	const strength = ref(DEFAULT_STRENGTH)
+	const styleOptions = ref([])
+	const selectedStyleId = ref('')
+	const stylesLoading = ref(false)
+	const stylesError = ref('')
 
 	const pageState = reactive({
 		styleKey: DEFAULT_STYLE_KEY
@@ -116,9 +153,37 @@
 
 	const preset = computed(() => getStylePreset(pageState.styleKey))
 
-	const strengthPercent = computed(() => Math.round(strength.value * 100))
+	const selectedStyle = computed(() =>
+		styleOptions.value.find((item) => item.id === selectedStyleId.value) || null
+	)
 
 	const displayImage = computed(() => resultPath.value || imagePath.value)
+
+	const loadStyleOptions = async () => {
+		stylesLoading.value = true
+		stylesError.value = ''
+		try {
+			const styles = await fetchStylesForPreset(pageState.styleKey)
+			styleOptions.value = styles
+			if (!styles.some((item) => item.id === selectedStyleId.value)) {
+				selectedStyleId.value = styles[0]?.id || ''
+			}
+		} catch (err) {
+			console.error('[loadStyleOptions]', err)
+			styleOptions.value = []
+			selectedStyleId.value = ''
+			stylesError.value = err?.message || '获取风格列表失败'
+		} finally {
+			stylesLoading.value = false
+		}
+	}
+
+	const selectStyle = (item) => {
+		if (processing.value || !item?.id) return
+		if (selectedStyleId.value === item.id) return
+		selectedStyleId.value = item.id
+		resultPath.value = ''
+	}
 
 	onLoad((options) => {
 		if (options?.styleKey) {
@@ -128,6 +193,7 @@
 			? decodeURIComponent(options.title)
 			: preset.value.pageTitle
 		uni.setNavigationBarTitle({ title })
+		loadStyleOptions()
 	})
 
 	const loadImageMeta = (path) => {
@@ -170,15 +236,6 @@
 		imagePath.value = ''
 		resultPath.value = ''
 		originSize.value = { width: 0, height: 0 }
-		strength.value = DEFAULT_STRENGTH
-	}
-
-	const onStrengthChanging = (e) => {
-		strength.value = e.detail.value / 100
-	}
-
-	const onStrengthChange = (e) => {
-		strength.value = e.detail.value / 100
 	}
 
 	const downloadResultImage = (url) =>
@@ -206,6 +263,10 @@
 
 	const handleProcess = async () => {
 		if (processing.value || !imagePath.value) return
+		if (!selectedStyle.value) {
+			uni.showToast({ title: '请先选择风格', icon: 'none' })
+			return
+		}
 		if (!checkLogin()) return
 
 		processing.value = true
@@ -217,13 +278,13 @@
 		try {
 			const ossUrl = await uploadImageToOss(imagePath.value)
 			logOk(`OSS 上传成功\n${ossUrl}`)
-			logStep('2/4 提交风格转换任务')
-			showTaskLoading({ title: 'AI 生成中...', mask: true })
+			logStep(`2/4 提交风格转换任务 (${selectedStyle.value.name})`)
+			showTaskLoading({ title: '生成中...', mask: true })
 
 			const payload = buildStyleTransferPayload(
 				ossUrl,
-				pageState.styleKey,
-				strength.value
+				selectedStyle.value,
+				DEFAULT_STRENGTH
 			)
 			const res = await apiCrossDimensionCamera(payload)
 			const body = res?.data
@@ -242,7 +303,7 @@
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
 					onProgress: (attempt, maxAttempts) => {
 						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
-						showTaskLoading({ title: 'AI 生成中...', mask: true })
+						showTaskLoading({ title: '生成中...', mask: true })
 					}
 				})
 				logOk(`任务完成\n${resultUrl}`)
@@ -302,7 +363,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.preview-card {
@@ -329,17 +390,21 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -407,6 +472,91 @@
 		border-radius: 20rpx;
 		padding: 28rpx;
 		margin-bottom: 24rpx;
+
+		&.action-panel {
+			padding-top: 0;
+		}
+	}
+
+	.style-loading,
+	.style-error {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		min-height: 160rpx;
+		gap: 20rpx;
+
+		text {
+			font-size: 26rpx;
+			color: var(--text-muted);
+			text-align: center;
+		}
+	}
+
+	.retry-btn {
+		padding: 14rpx 36rpx;
+		border-radius: 32rpx;
+		background: rgba(79, 172, 254, 0.15);
+		border: 2rpx solid rgba(79, 172, 254, 0.35);
+
+		text {
+			font-size: 26rpx;
+			color: #4facfe;
+		}
+
+		&:active {
+			opacity: 0.85;
+		}
+	}
+
+	.style-scroll {
+		max-height: 420rpx;
+	}
+
+	.style-item {
+		padding: 22rpx 24rpx;
+		border-radius: 16rpx;
+		background: var(--surface-bg);
+		border: 2rpx solid transparent;
+		margin-bottom: 16rpx;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+
+		.style-name {
+			display: block;
+			font-size: 28rpx;
+			font-weight: 600;
+			color: var(--text-primary);
+			margin-bottom: 8rpx;
+		}
+
+		.style-desc {
+			display: block;
+			font-size: 24rpx;
+			line-height: 1.5;
+			color: var(--text-muted);
+		}
+
+		&.active {
+			background: rgba(79, 172, 254, 0.15);
+			border-color: #4facfe;
+
+			.style-name {
+				color: #4facfe;
+			}
+		}
+
+		&.disabled {
+			opacity: 0.6;
+			pointer-events: none;
+		}
+
+		&:active:not(.disabled) {
+			opacity: 0.85;
+		}
 	}
 
 	.section-label {
@@ -429,7 +579,7 @@
 		text {
 			font-size: 30rpx;
 			font-weight: 600;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
@@ -441,7 +591,7 @@
 
 		.intensity-label {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.7);
+			color: var(--text-secondary);
 			flex-shrink: 0;
 			width: 120rpx;
 		}
@@ -472,7 +622,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {

@@ -3,6 +3,10 @@ import {
 	isUserCancelError,
 	showMediaPrivacyScopeNotDeclaredModal
 } from '@/utils/wx/privacy.js'
+import {
+	isVideoWithinRemovePixelLimit,
+	getVideoRemovePixelLimitMessage
+} from '@/utils/video/subtitleRemoval.js'
 
 /** 音视频转文字：最长时长（秒） */
 export const TEXT_MEDIA_MAX_DURATION = 45
@@ -17,6 +21,37 @@ const rejectIfOverDuration = (duration, maxDuration) => {
 		throw new Error(`时长不能超过 ${maxDuration} 秒（当前约 ${seconds} 秒）`)
 	}
 	return seconds
+}
+
+const rejectIfOverPixels = (width, height) => {
+	const w = Math.round(Number(width) || 0)
+	const h = Math.round(Number(height) || 0)
+	if (w && h && !isVideoWithinRemovePixelLimit(w, h)) {
+		throw new Error(getVideoRemovePixelLimitMessage(w, h))
+	}
+}
+
+const getVideoInfoSafe = (src) =>
+	new Promise((resolve) => {
+		if (!src || typeof uni.getVideoInfo !== 'function') {
+			resolve(null)
+			return
+		}
+		uni.getVideoInfo({
+			src,
+			success: (info) => resolve(info),
+			fail: () => resolve(null)
+		})
+	})
+
+const resolveVideoDimensions = async (path, width, height) => {
+	let w = Math.round(Number(width) || 0)
+	let h = Math.round(Number(height) || 0)
+	if (w && h) return { width: w, height: h }
+	const info = await getVideoInfoSafe(path)
+	w = Math.round(Number(info?.width) || 0)
+	h = Math.round(Number(info?.height) || 0)
+	return { width: w, height: h }
 }
 
 /** 获取本地音频时长（秒） */
@@ -68,12 +103,14 @@ export const pickLocalVideoForText = (options = {}) => {
 					return
 				}
 				const duration = rejectIfOverDuration(file.duration, maxDuration)
+				const { width, height } = await resolveVideoDimensions(path, file.width, file.height)
+				rejectIfOverPixels(width, height)
 				resolve({
 					path,
 					thumbPath: file.thumbTempFilePath || '',
 					size,
-					width: Number(file.width) || 0,
-					height: Number(file.height) || 0,
+					width,
+					height,
 					duration,
 					mediaType: 'video',
 					name: file.name || '视频'

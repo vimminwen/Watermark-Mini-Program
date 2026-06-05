@@ -1,9 +1,9 @@
 <template>
 	<dark-page-meta />
-	<view class="cutout-page">
+	<view class="cutout-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @tap="chooseImage">
-				<text class="empty-icon">📷</text>
+				<text class="iconfont icon-koutu empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
 				<text class="empty-desc">支持 JPG / PNG，建议小于 5MB</text>
 			</view>
@@ -31,7 +31,11 @@
 				:class="{ disabled: processing }"
 				@tap="handleCutout"
 			>
-				<text>{{ processing ? '抠图中...' : (resultPath ? '重新抠图' : '开始抠图') }}</text>
+				<processing-text
+					:active="processing"
+					text="抠图中"
+					:idle-text="resultPath ? '重新抠图' : '开始抠图'"
+				/>
 			</view>
 			<view
 				v-if="resultPath"
@@ -44,16 +48,21 @@
 		</view>
 
 		<tool-tips-card :tips="tips" />
+		<!-- 上传日志（调试时取消注释）
 		<debug-log-panel
 			:logs="debugLogs"
 			:scroll-top="debugScrollTop"
 			@clear="clearDebugLogs"
 		/>
+		-->
 	</view>
 	<safe-area-bottom />
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 	import { ref, computed } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiCutout, apiGetAiLog } from '@/api/api.js'
@@ -85,7 +94,7 @@
 
 	const tips = [
 		'选择含清晰主体的照片，人像、商品、动物效果更佳',
-		'点击「开始抠图」后 AI 自动识别并去除背景',
+		'点击「开始抠图」后自动识别并去除背景',
 		'抠图完成后在原图位置展示透明背景效果',
 		'满意后点击「保存到相册」'
 	]
@@ -179,7 +188,7 @@
 			const ossUrl = await uploadImageToOss(imagePath.value)
 			logOk(`OSS 上传成功\n${ossUrl}`)
 			logStep('2/4 提交抠图任务')
-			showTaskLoading({ title: 'AI 抠图中...', mask: true })
+			showTaskLoading({ title: '抠图中...', mask: true })
 
 			const payload = buildCutoutPayload(ossUrl)
 			const res = await apiCutout(payload)
@@ -196,11 +205,11 @@
 					throw new Error('未获取到任务 ID')
 				}
 				logStep(`3/4 轮询任务结果 (id=${aiLogId})`)
-				showTaskLoading({ title: 'AI 抠图中...', mask: true })
+				showTaskLoading({ title: '抠图中...', mask: true })
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
 					onProgress: (attempt, maxAttempts) => {
 						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
-						showTaskLoading({ title: 'AI 抠图中...', mask: true })
+						showTaskLoading({ title: '抠图中...', mask: true })
 					}
 				})
 				logOk(`任务完成\n${resultUrl}`)
@@ -260,7 +269,7 @@
 		padding: 30rpx;
 		padding-bottom: 140rpx;
 		box-sizing: border-box;
-		background: linear-gradient(to bottom, #050d40, #233968);
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	}
 
 	.preview-card {
@@ -287,17 +296,21 @@
 		.empty-icon {
 			font-size: 88rpx;
 			margin-bottom: 24rpx;
+			background: linear-gradient(to bottom, #aa2267, #fe764e);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
 		}
 
 		.empty-title {
 			font-size: 32rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 			margin-bottom: 12rpx;
 		}
 
 		.empty-desc {
 			font-size: 26rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 		}
 	}
 
@@ -389,7 +402,7 @@
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 
 		&:active:not(.disabled) {

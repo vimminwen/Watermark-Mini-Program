@@ -1,7 +1,10 @@
 <script>
+	import { applyTheme, getStoredTheme } from '@/utils/theme/theme.js'
+
 	export default {
 		onLaunch: function() {
 			console.log('App Launch')
+			applyTheme(getStoredTheme())
 		},
 		onShow: function() {
 			console.log('App Show')

@@ -1,6 +1,6 @@
 <template>
 	<dark-page-meta />
-	<view class="login-page">
+	<view class="login-page" :class="themeClass">
 		<view class="header">
 			<view class="logo">
 				<image class="logo-img" src="/static/logo.png" mode="aspectFit" />
@@ -25,6 +25,12 @@
 				<text class="link-text" @click="goToForgetPassword">忘记密码？</text>
 			</view>
 
+			<agreement-consent
+				v-model="agreedToTerms"
+				@open-agreement="goToAgreement"
+				@open-privacy="goToPrivacy"
+			/>
+
 			<view class="login-button" :class="{ disabled: loading || quickLoginLoading }" @click="handleLogin">
 				<text>{{ loading ? '登录中...' : '登录' }}</text>
 			</view>
@@ -34,18 +40,14 @@
 				<text class="divider-text">其他登录方式</text>
 				<view class="divider-line"></view>
 			</view>
-			<phone-quick-login-btn custom-class="login-quick-btn" :disabled="loading" show-dev-tip
-				@loading="onQuickLoginLoading" />
-
-			<view class="divider">
-				<view class="divider-line"></view>
-				<text class="divider-text">登录即表示同意</text>
-				<view class="divider-line"></view>
-			</view>
-
-			<view class="agreement-text">
-				<text class="link-text" @click="goToAgreement">《用户协议》</text>
-				<text class="link-text" @click="goToPrivacy">《隐私政策》</text>
+			<view class="quick-login-wrap">
+				<phone-quick-login-btn custom-class="login-quick-btn" :disabled="loading" show-dev-tip
+					@loading="onQuickLoginLoading" />
+				<view
+					v-if="!agreedToTerms"
+					class="quick-login-mask"
+					@tap.stop="handleQuickLoginBlocked"
+				/>
 			</view>
 		</view>
 	</view>
@@ -53,17 +55,23 @@
 </template>
 
 <script setup>
+	import { usePageTheme } from '@/utils/theme/useTheme.js'
+
+	const { themeClass } = usePageTheme()
 import { ref } from 'vue'
 import { apiLogin } from '@/api/api.js'
 import { isLoginSuccess } from '@/utils/user/authHelper.js'
 import { clearAuthSession, getApiMessage, persistAuthSession, refreshUserProfile } from '@/utils/user/session.js'
 import { isNoTokenError } from '@/utils/request.js'
 import { buildLoginPayload } from '@/utils/user/rsaEncrypt.js'
+import { useAgreementConsent } from '@/utils/user/agreementConsent.js'
+import AgreementConsent from '@/components/user/AgreementConsent.vue'
 
 const phone = ref('')
 const password = ref('')
 const loading = ref(false)
 const quickLoginLoading = ref(false)
+const { agreedToTerms, ensureAgreed } = useAgreementConsent()
 
 const onQuickLoginLoading = (val) => {
 	quickLoginLoading.value = val
@@ -88,8 +96,17 @@ const finishLoginSuccess = async (body) => {
 	}, 1500)
 }
 
-const handleLogin = async () => {
+const handleLogin = () => {
 	if (loading.value || quickLoginLoading.value) return
+	ensureAgreed(doLogin)
+}
+
+const handleQuickLoginBlocked = () => {
+	if (loading.value || quickLoginLoading.value) return
+	ensureAgreed()
+}
+
+const doLogin = async () => {
 	if (!isValidPhone()) {
 		uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
 		return
@@ -159,7 +176,7 @@ const goToPrivacy = () => {
 <style lang="scss">
 .login-page {
 	min-height: 100vh;
-	background: linear-gradient(to bottom, #050d40, #233968);
+	background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
 	padding: 80rpx 60rpx;
 }
 
@@ -183,13 +200,13 @@ const goToPrivacy = () => {
 	.title {
 		font-size: 48rpx;
 		font-weight: bold;
-		color: #ffffff;
+		color: var(--text-primary);
 		margin-bottom: 15rpx;
 	}
 
 	.subtitle {
 		font-size: 28rpx;
-		color: rgba(255, 255, 255, 0.6);
+		color: var(--text-subtle);
 	}
 }
 
@@ -197,7 +214,7 @@ const goToPrivacy = () => {
 	.input-group {
 		display: flex;
 		align-items: center;
-		background: rgba(255, 255, 255, 0.08);
+		background: var(--surface-bg);
 		border-radius: 16rpx;
 		padding: 30rpx;
 		margin-bottom: 30rpx;
@@ -210,10 +227,10 @@ const goToPrivacy = () => {
 		.input-field {
 			flex: 1;
 			font-size: 30rpx;
-			color: #ffffff;
+			color: var(--text-primary);
 
 			&::placeholder {
-				color: rgba(255, 255, 255, 0.4);
+				color: var(--text-faint);
 			}
 		}
 	}
@@ -243,12 +260,26 @@ const goToPrivacy = () => {
 		text {
 			font-size: 32rpx;
 			font-weight: bold;
-			color: #ffffff;
+			color: var(--text-primary);
 		}
 	}
 
 	:deep(.login-quick-btn) {
+		margin-bottom: 0;
+	}
+
+	.quick-login-wrap {
+		position: relative;
 		margin-bottom: 40rpx;
+	}
+
+	.quick-login-mask {
+		position: absolute;
+		left: 0;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 2;
 	}
 
 	.divider {
@@ -259,12 +290,12 @@ const goToPrivacy = () => {
 		.divider-line {
 			flex: 1;
 			height: 1rpx;
-			background: rgba(255, 255, 255, 0.2);
+			background: var(--surface-bg-strong);
 		}
 
 		.divider-text {
 			font-size: 24rpx;
-			color: rgba(255, 255, 255, 0.5);
+			color: var(--text-muted);
 			padding: 0 30rpx;
 		}
 	}
@@ -289,15 +320,10 @@ const goToPrivacy = () => {
 
 			.btn-text {
 				font-size: 26rpx;
-				color: #ffffff;
+				color: var(--text-primary);
 			}
 		}
 	}
 }
 
-.agreement-text {
-	display: flex;
-	justify-content: center;
-	gap: 30rpx;
-}
 </style>
