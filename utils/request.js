@@ -92,7 +92,8 @@ export function isAuthExemptRequest(url, method = 'GET') {
 	if (path === '/user' && upperMethod === 'POST') return true;
 	if (path === '/user/login' && upperMethod === 'POST') return true;
 
-	// 忘记密码（与修改密码同接口，未登录可提交）
+	// 忘记密码 / 修改密码（未登录忘记密码时 oldPassword 传空；忘记密码不带 token）
+	if (path === '/user/password' && upperMethod === 'PUT') return true;
 	if (path === '/user/updatePassword' && upperMethod === 'PUT') return true;
 
 	// 公开只读（未登录可浏览，不弹登录提示）
@@ -161,10 +162,12 @@ export function request(config = {}) {
 				header = {}, // 用户自定义 header
 				silentErrorToast = false,
 				skipAuthCheck = false,
+				omitToken = false,
 				preserveBigInt = false
 			} = config;
 
 			const authExempt = skipAuthCheck || isAuthExemptRequest(url, method);
+			const shouldOmitToken = omitToken || (authExempt && !hasValidToken());
 
 			// 未登录且非登录/注册类接口：静默拦截，不弹任何提示
 			if (!authExempt && !hasValidToken()) {
@@ -236,8 +239,8 @@ export function request(config = {}) {
 				timeout,
 				dataType: preserveBigInt ? 'text' : 'json',
 				header: {
-					// 已登录时仍附带 token（如个人中心改密码）；仅未登录的免鉴权接口不带 token
-					...getDefaultHeader({ omitToken: authExempt && !hasValidToken() }),
+					// 已登录时仍附带 token（如个人中心改密码）；忘记密码等场景可 omitToken
+					...getDefaultHeader({ omitToken: shouldOmitToken }),
 					...header
 				},
 				success: (res) => {

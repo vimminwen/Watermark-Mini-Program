@@ -60,6 +60,7 @@
 		formatFileSize,
 		getFileSize
 	} from '@/utils/image/imageCompress.js'
+	import { beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 
 	const instance = getCurrentInstance()
 
@@ -91,7 +92,8 @@
 		}
 	})
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 		uni.chooseImage({
 			count: 1,
 			sizeType: ['original'],
@@ -134,6 +136,7 @@
 			)
 			compressedPath.value = tempPath
 			compressedSize.value = await getFileSize(tempPath)
+			recordTrialUseAfterSuccess()
 		} catch (err) {
 			console.error('[runCompress]', err)
 			uni.showToast({

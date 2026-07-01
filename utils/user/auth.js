@@ -29,6 +29,51 @@ const readVipCache = () => {
 /** 根据 VIP 接口数据判断是否有效会员 */
 const isVipFromData = (vipData) => isActiveVipMember(vipData);
 
+/** 非会员可免费体验次数上限（已用次数达到该值则不可继续） */
+export const TRIAL_USE_LIMIT = 2;
+
+const MEMBER_RECHARGE_URL = '/pages/member/recharge';
+
+/** 解析后端返回的体验次数，无效时返回 null */
+const parseTrialNum = (value) => {
+	if (value === null || value === undefined || value === '') return null;
+	const num = Number(value);
+	if (!Number.isFinite(num) || num < 0) return null;
+	return Math.floor(num);
+};
+
+/** 拉取非会员已用体验次数，失败或无效返回 null */
+const fetchTrialNum = async (userId) => {
+	const userInfoRes = await apiGetUserInfo(userId);
+	const raw =
+		userInfoRes?.data?.data?.num ??
+		userInfoRes?.data?.num ??
+		userInfoRes?.data?.data?.trialNum ??
+		userInfoRes?.data?.trialNum;
+	return parseTrialNum(raw);
+};
+
+/** 非会员是否仍有体验次数（获取不到次数视为已用完） */
+const canUseByTrial = ({ isVip, trialNum }) => {
+	if (isVip) return true;
+	if (trialNum === null || trialNum === undefined) return false;
+	return trialNum < TRIAL_USE_LIMIT;
+};
+
+/** 体验次数用尽弹窗，确定后跳转会员充值 */
+export const showTrialExhaustedModal = () => {
+	uni.showModal({
+		title: '提示',
+		content: '体验次数已经用完，是否开通会员',
+		confirmText: '开通会员',
+		success: (res) => {
+			if (res.confirm) {
+				uni.navigateTo({ url: MEMBER_RECHARGE_URL });
+			}
+		}
+	});
+};
+
 /**
  * 登录状态检查（仅用户主动操作时可弹窗引导登录）
  * @param {Boolean} showToast - 是否显示登录提示弹窗
@@ -103,8 +148,12 @@ export async function checkMemberAndTrial() {
 		const expirationTime = parseExpirationTime(exp);
 
 		if (!isVip) {
-			const userInfoRes = await apiGetUserInfo(userId);
-			const trialNum = Number(userInfoRes.data?.data?.num) ?? 0;
+			let trialNum = null;
+			try {
+				trialNum = await fetchTrialNum(userId);
+			} catch (err) {
+				console.error('获取体验次数失败：', err);
+			}
 			return {
 				isVip: false,
 				expirationTime: 0,
@@ -119,12 +168,30 @@ export async function checkMemberAndTrial() {
 		};
 	} catch (err) {
 		console.error('checkMemberAndTrial 请求异常：', err);
-		// 接口异常时返回默认安全值，防止页面崩溃
 		return {
 			isVip: false,
 			expirationTime: 0,
-			trialNum: 0
+			trialNum: null
 		};
+	}
+}
+
+/**
+ * 上传图片前权限检查（登录 + 会员/体验次数）
+ * @returns {Promise<Boolean>} 是否允许继续选图
+ */
+export async function beforeUploadCheck() {
+	if (!checkLogin()) return false;
+
+	try {
+		const result = await checkMemberAndTrial();
+		if (canUseByTrial(result)) return true;
+		showTrialExhaustedModal();
+		return false;
+	} catch (err) {
+		console.error('上传权限检查失败：', err);
+		showTrialExhaustedModal();
+		return false;
 	}
 }
 
@@ -133,37 +200,7 @@ export async function checkMemberAndTrial() {
  * @returns {Promise<Boolean>} 是否有权限继续操作
  */
 export async function beforeRequestCheck() {
-	// 先检查登录
-	if (!checkLogin()) return false;
-
-	try {
-		const {
-			isVip,
-			trialNum
-		} = await checkMemberAndTrial();
-
-		// 是会员 OR 体验次数 < 2 → 允许使用
-		if (isVip || trialNum < 2) return true;
-
-		// 体验次数用完
-		uni.showModal({
-			title: '提示',
-			content: '体验次数已用完，开通会员继续使用',
-			confirmText: '去开通',
-			success: (res) => {
-				if (res.confirm) {
-					uni.navigateTo({
-						url: '/pages/my/member/index'
-					});
-				}
-			}
-		});
-		return false;
-
-	} catch (err) {
-		console.error('权限检查失败：', err);
-		return false;
-	}
+	return beforeUploadCheck();
 }
 
 /**
@@ -171,7 +208,6 @@ export async function beforeRequestCheck() {
  * @returns {Promise<void>}
  */
 export async function addTrialNum() {
-	const token = uni.getStorageSync("token")
 	const userId = uni.getStorageSync('userIdStorage');
 
 	if (!userId) {
@@ -180,25 +216,29 @@ export async function addTrialNum() {
 	}
 
 	try {
-		// 调用接口获取当前次数
-		const res = await apiGetUserInfo(userId);
-		console.log('获取用户信息接口返回：', res);
+		const currentNum = await fetchTrialNum(userId);
+		if (currentNum === null) {
+			console.error('【addTrialNum】无法获取有效体验次数，跳过更新');
+			return;
+		}
 
-		// 安全取值
-		const currentNum = Number(res.data?.data?.num) || 0;
-		console.log('当前体验次数：', currentNum);
-
-		const newNum = currentNum + 1;
-
-		const resNum = await apiModifyMemberNum({
-			userId: userId,
-			num: newNum
+		await apiModifyMemberNum({
+			userId,
+			num: currentNum + 1
 		});
-
 	} catch (err) {
 		console.error('【addTrialNum】次数更新失败：', err);
 	}
 }
+
+/**
+ * 功能使用成功后记录体验次数（非会员 +1，不阻塞 UI）
+ */
+export const recordTrialUseAfterSuccess = () => {
+	onCreateSuccess().catch((err) => {
+		console.error('【recordTrialUseAfterSuccess】', err);
+	});
+};
 
 /**
  * 用户写操作前置守卫（登录 + 新建时的会员/体验次数）
@@ -240,9 +280,13 @@ export const clearVipCache = () => {
 export default {
 	checkLogin,
 	checkMemberAndTrial,
+	beforeUploadCheck,
 	beforeRequestCheck,
 	addTrialNum,
+	recordTrialUseAfterSuccess,
 	guardWriteAction,
 	onCreateSuccess,
-	clearVipCache
+	clearVipCache,
+	showTrialExhaustedModal,
+	TRIAL_USE_LIMIT
 };

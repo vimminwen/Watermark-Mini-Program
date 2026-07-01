@@ -5,7 +5,7 @@
 			<view class="content-box">
 				<view class="section">
 					<text class="section-title">一、协议的接受</text>
-					<text class="section-content">欢迎使用云途汇水印（以下简称"本应用"）。本应用由我们开发和运营。</text>
+					<text class="section-content">欢迎使用汇水印（以下简称"本应用"）。本应用由我们开发和运营。</text>
 					<text class="section-content">您下载、安装、使用本应用即表示您同意接受本协议的全部条款和条件。如果您不同意本协议，请不要使用本应用。</text>
 				</view>
 				
@@ -46,7 +46,7 @@
 					<text class="section-content">本应用提供的服务仅供参考，我们不对服务的准确性、完整性或适用性做出任何保证。用户使用本应用产生的任何后果由用户自行承担。</text>
 				</view>
 				
-				<text class="footer">最后更新：2024年1月1日</text>
+				<text class="footer">最后更新：2026年1月1日</text>
 			</view>
 		</scroll-view>
 	</view>

@@ -3,6 +3,7 @@ import {
 	isUserCancelError,
 	showMediaPrivacyScopeNotDeclaredModal
 } from '@/utils/wx/privacy.js'
+import { beforeUploadCheck } from '@/utils/user/auth.js'
 
 /**
  * 选择本地图片（微信端优先 chooseMedia）
@@ -10,6 +11,15 @@ import {
  * @returns {Promise<{ path: string, size: number, width: number, height: number }>}
  */
 export const pickLocalImage = async (options = {}) => {
+	if (!options.skipUploadGuard) {
+		const allowed = await beforeUploadCheck()
+		if (!allowed) {
+			const err = new Error('UPLOAD_AUTH_DENIED')
+			err.code = 'UPLOAD_AUTH_DENIED'
+			throw err
+		}
+	}
+
 	const count = options.count ?? 1
 	const maxSize = options.maxSize ?? 0
 	const sourceType = options.sourceType ?? ['album', 'camera']
@@ -68,6 +78,7 @@ export const pickLocalImage = async (options = {}) => {
 
 /** 选图失败时的用户提示 */
 export const handlePickLocalImageError = (err) => {
+	if (err?.code === 'UPLOAD_AUTH_DENIED') return
 	if (isUserCancelError(err)) return
 
 	if (isPrivacyScopeNotDeclared(err)) {

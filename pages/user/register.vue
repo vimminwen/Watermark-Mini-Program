@@ -3,12 +3,12 @@
 	<view class="register-page" :class="themeClass">
 		<view class="header">
 			<view class="title">注册账号</view>
-			<view class="subtitle">加入云途汇水印</view>
+			<view class="subtitle">加入汇水印</view>
 		</view>
 		
 		<view class="register-form">
 			<view class="input-group">
-				<text class="input-icon">📱</text>
+				<text class="input-icon"></text>
 				<input 
 					class="input-field" 
 					type="number" 
@@ -19,7 +19,7 @@
 			</view>
 			
 			<view class="input-group">
-				<text class="input-icon">👤</text>
+				<text class="input-icon"></text>
 				<input 
 					class="input-field" 
 					type="text" 
@@ -28,26 +28,24 @@
 					maxlength="20"
 				/>
 			</view>
-			
-			<view class="input-group">
-				<text class="input-icon">🔒</text>
-				<input 
-					class="input-field" 
-					type="password" 
-					placeholder="请设置密码（6-20位）"
+
+			<ios-autofill-decoy />
+
+			<view class="input-group input-group--password">
+				<text class="input-icon"></text>
+				<password-field
 					v-model="password"
-					maxlength="20"
+					placeholder="请设置密码（6-20位）"
+					:maxlength="20"
 				/>
 			</view>
 			
-			<view class="input-group">
-				<text class="input-icon">🔒</text>
-				<input 
-					class="input-field" 
-					type="password" 
-					placeholder="请确认密码"
+			<view class="input-group input-group--password">
+				<text class="input-icon"></text>
+				<password-field
 					v-model="confirmPassword"
-					maxlength="20"
+					placeholder="请确认密码"
+					:maxlength="20"
 				/>
 			</view>
 
@@ -86,6 +84,8 @@
 	import { buildLoginPayload } from '@/utils/user/rsaEncrypt.js'
 	import { useAgreementConsent } from '@/utils/user/agreementConsent.js'
 	import AgreementConsent from '@/components/user/AgreementConsent.vue'
+	import PasswordField from '@/components/user/PasswordField.vue'
+	import IosAutofillDecoy from '@/components/user/IosAutofillDecoy.vue'
 
 	const phone = ref('')
 	const nickname = ref('')
@@ -232,6 +232,7 @@
 			.input-icon {
 				font-size: 36rpx;
 				margin-right: 20rpx;
+				flex-shrink: 0;
 			}
 
 			.input-field {

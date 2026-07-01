@@ -29,7 +29,7 @@ export const persistAuthSession = (body) => {
 	const userInfo = {
 		id: userId || '',
 		phone: data.phone ?? '',
-		nickname: data.nickname ?? '云途汇水印用户',
+		nickname: data.nickname ?? '汇水印用户',
 		avatar: data.image ?? data.avatar ?? '/static/logo.png',
 		level: data.level ?? '普通用户',
 		expireDate: data.expireDate ?? '',

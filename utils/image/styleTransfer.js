@@ -18,8 +18,8 @@ export const STYLE_TRANSFER_PRESETS = {
 	},
 	cyber: {
 		key: 'cyber',
-		pageTitle: '图片赛博化',
-		processText: '开始赛博化',
+		pageTitle: '图片科幻化',
+		processText: '开始科幻化',
 		reprocessText: '重新生成',
 		categoryNames: ['幻幻化', '科幻化'],
 		tips: [

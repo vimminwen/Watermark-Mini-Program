@@ -1,5 +1,8 @@
 const DEFAULT_BENEFITS = ['全部工具解锁', '无广告干扰', '云端存储']
 
+/** 接口角标：表示套餐暂未开通 */
+const UNAVAILABLE_MEMBER_BADGE = '未开通'
+
 const formatPrice = (value) => {
 	const n = Number(value)
 	if (Number.isNaN(n)) return '0.00'
@@ -83,10 +86,26 @@ const normalizePackage = (raw, index) => {
 		vipType: mapVipType(code, name),
 		desc: String(raw.description ?? raw.desc ?? raw.remark ?? '').trim(),
 		badgeText,
-		hot: !!badgeText,
+		hot: !!badgeText && badgeText !== UNAVAILABLE_MEMBER_BADGE,
 		benefits: benefits.length ? benefits : [...DEFAULT_BENEFITS],
 		sort: Number(raw.sortOrder ?? raw.sort ?? raw.order ?? index)
 	}
+}
+
+/** 角标为「未开通」的套餐暂不可购买 */
+export { UNAVAILABLE_MEMBER_BADGE }
+
+export const isUnavailableMemberPackage = (pkg) =>
+	String(pkg?.badgeText ?? '').trim() === UNAVAILABLE_MEMBER_BADGE
+
+/** @deprecated 使用 isUnavailableMemberPackage */
+export const isContinuousMemberPackage = isUnavailableMemberPackage
+
+/** 可展示的角标文案（「未开通」不展示） */
+export const getPackageBadgeText = (pkg) => {
+	const text = String(pkg?.badgeText ?? '').trim()
+	if (!text || text === UNAVAILABLE_MEMBER_BADGE) return ''
+	return text
 }
 
 /** 解析 /front/member-package/list 响应 */

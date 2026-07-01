@@ -95,6 +95,10 @@
 				</view>
 			</view>
 		</view>
+
+		<view class="icp-footer" @click="copyIcpNumber">
+			<text class="icp-text">{{ icpNumber }}</text>
+		</view>
 	</view>
 	<safe-area-bottom />
 </template>
@@ -129,7 +133,7 @@
 
 	const defaultProfile = {
 		avatar: '/static/logo.png',
-		nickname: '云途汇水印用户',
+		nickname: '汇水印用户',
 		level: '普通用户'
 	}
 
@@ -252,7 +256,7 @@
 	const applyUserProfile = (user) => {
 		userProfile.value = {
 			avatar: resolveAvatar(user.image ?? user.avatar),
-			nickname: user.nickname || '云途汇水印用户',
+			nickname: user.nickname || '汇水印用户',
 			level: user.level ?? user.vipType ?? user.type ?? '普通用户'
 		}
 	}
@@ -278,7 +282,7 @@
 		if (stored && typeof stored === 'object') {
 			userProfile.value = {
 				avatar: resolveAvatar(stored.avatar),
-				nickname: stored.nickname || '云途汇水印用户',
+				nickname: stored.nickname || '汇水印用户',
 				level: stored.level || '普通用户'
 			}
 		}
@@ -369,14 +373,14 @@
 	const goToCancel = () => {
 		uni.showModal({
 			title: '提示',
-			content: '退订会员立即生效，下月起不再扣费。',
+			content: '退订后立即生效，本月服务仍可正常使用，下月起停止扣费。',
 			cancelColor: '#b9b9b9',
 			confirmColor: '#07b85b',
 			success: (res) => {
 				if (!res.confirm) return
 				uni.showModal({
 					title: '退订成功',
-					content: '下月起不再扣费',
+					content: '操作即生效，下月将不再自动续费。',
 					showCancel: false
 				})
 			}
@@ -398,6 +402,24 @@
 		}
 		uni.navigateTo({
 			url: '/pages/user/login'
+		})
+	}
+
+	const icpNumber = '粤ICP备2026063110号-2X'
+
+	const copyIcpNumber = () => {
+		uni.setClipboardData({
+			data: icpNumber,
+			success: () => {
+				uni.showModal({
+					content: '复制成功',
+					showCancel: false,
+					confirmText: '知道了'
+				})
+			},
+			fail: () => {
+				uni.showToast({ title: '复制失败', icon: 'none' })
+			}
 		})
 	}
 </script>
@@ -740,6 +762,21 @@
 				font-size: 28rpx;
 				color: var(--text-muted);
 			}
+		}
+	}
+
+	.icp-footer {
+		display: flex;
+		justify-content: center;
+		padding: 24rpx 0 16rpx;
+
+		&:active {
+			opacity: 0.75;
+		}
+
+		.icp-text {
+			font-size: 24rpx;
+			color: var(--text-muted);
 		}
 	}
 </style>

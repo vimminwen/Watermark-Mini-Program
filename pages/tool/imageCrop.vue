@@ -128,6 +128,7 @@
 		exportCroppedImage,
 		applyCropResize
 	} from '@/utils/image/imageCrop.js'
+	import { beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 
 	const instance = getCurrentInstance()
 
@@ -177,7 +178,8 @@
 		}
 	})
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 		uni.chooseImage({
 			count: 1,
 			sizeType: ['original'],
@@ -364,6 +366,7 @@
 				})
 			})
 			uni.showToast({ title: '已保存到相册', icon: 'success' })
+			recordTrialUseAfterSuccess()
 		} catch (err) {
 			console.error('[saveImage]', err)
 			const denied = /auth deny|authorize|permission/i.test(err?.errMsg || '')

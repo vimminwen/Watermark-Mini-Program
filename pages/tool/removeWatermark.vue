@@ -1,16 +1,16 @@
 <template>
 	<dark-page-meta />
-	<view class="cutout-page" :class="themeClass">
+	<view class="watermark-page" :class="themeClass">
 		<view class="preview-card boxBg">
 			<view v-if="!imagePath" class="preview-empty" @tap="chooseImage">
-				<text class="iconfont icon-koutu empty-icon"></text>
+				<text class="iconfont icon-shengchengAI3 empty-icon"></text>
 				<text class="empty-title">点击选择图片</text>
 				<text class="empty-desc">支持 JPG / PNG，建议小于 5MB</text>
 			</view>
-			<view v-else class="preview-wrap" :class="{ 'checker-bg': resultPath }" @tap="onPreviewTap">
+			<view v-else class="preview-wrap" @tap="onPreviewTap">
 				<image class="preview-image" :src="displayImage" mode="aspectFit" />
 				<view v-if="resultPath || originSize.width" class="size-badge">
-					<text v-if="resultPath">抠图完成 · 点击预览</text>
+					<text v-if="resultPath">去水印完成 · 点击预览</text>
 					<text v-else>{{ originSize.width }} × {{ originSize.height }}</text>
 				</view>
 			</view>
@@ -29,12 +29,12 @@
 			<view
 				class="process-btn"
 				:class="{ disabled: processing }"
-				@tap="handleCutout"
+				@tap="onProcessTap"
 			>
 				<processing-text
 					:active="processing"
-					text="抠图中"
-					:idle-text="resultPath ? '重新抠图' : '开始抠图'"
+					text="去水印中"
+					:idle-text="resultPath ? '重新去水印' : '开始去水印'"
 				/>
 			</view>
 			<view
@@ -48,13 +48,6 @@
 		</view>
 
 		<tool-tips-card :tips="tips" />
-		<!-- 上传日志（调试时取消注释）
-		<debug-log-panel
-			:logs="debugLogs"
-			:scroll-top="debugScrollTop"
-			@clear="clearDebugLogs"
-		/>
-		-->
 	</view>
 	<safe-area-bottom />
 </template>
@@ -65,24 +58,13 @@
 	const { themeClass } = usePageTheme()
 	import { ref, computed } from 'vue'
 	import { onLoad } from '@dcloudio/uni-app'
-	import { apiCutout, apiGetAiLog } from '@/api/api.js'
+	import { apiRemoveWatermark, apiGetAiLog } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
 	import { checkLogin, beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 	import { extractAiLogId, pollAiLogResult, resolveAiLogResultUrl } from '@/utils/ai/aiLog.js'
-	import { buildCutoutPayload } from '@/utils/image/cutout.js'
-	import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
-	import { baseUrl } from '@/utils/http.js'
-
-	const {
-		debugLogs,
-		debugScrollTop,
-		clearDebugLogs,
-		logInfo,
-		logStep,
-		logOk,
-		showDebugError
-	} = useDebugLog('cutout')
+	import { buildRemoveWatermarkPayload } from '@/utils/image/removeWatermark.js'
+	import { showTaskLoading, hideTaskLoading, resolveUserErrorMessage } from '@/utils/debug/useDebugLog.js'
 
 	const imagePath = ref('')
 	const resultPath = ref('')
@@ -93,10 +75,10 @@
 	const displayImage = computed(() => resultPath.value || imagePath.value)
 
 	const tips = [
-		'选择含清晰主体的照片，人像、商品、动物效果更佳',
-		'点击「开始抠图」后自动识别并去除背景',
-		'抠图完成后在原图位置展示透明背景效果',
-		'满意后点击「保存到相册」'
+		'选择带有水印、LOGO 或文字标识的图片',
+		'点击「开始去水印」后自动识别并处理',
+		'处理完成后在原图位置查看效果',
+		'满意后保存到相册'
 	]
 
 	onLoad((options) => {
@@ -163,10 +145,6 @@
 			})
 		})
 
-	const setResultFromPath = (path) => {
-		resultPath.value = path
-	}
-
 	const onPreviewTap = () => {
 		if (!resultPath.value) return
 		uni.previewImage({
@@ -175,27 +153,30 @@
 		})
 	}
 
-	const handleCutout = async () => {
+	const onProcessTap = () => {
+		if (processing.value) return
+		if (resultPath.value) {
+			resultPath.value = ''
+		}
+		handleRemoveWatermark()
+	}
+
+	const handleRemoveWatermark = async () => {
 		if (processing.value || !imagePath.value) return
 		if (!checkLogin()) return
 
 		processing.value = true
-		resultPath.value = ''
-		logInfo(`API 根地址: ${baseUrl}`)
-		logStep('1/4 上传图片到 OSS')
 		showTaskLoading({ title: '上传图片...', mask: true })
 
 		try {
 			const ossUrl = await uploadImageToOss(imagePath.value)
-			logOk(`OSS 上传成功\n${ossUrl}`)
-			logStep('2/4 提交抠图任务')
-			showTaskLoading({ title: '抠图中...', mask: true })
+			showTaskLoading({ title: '去水印中...', mask: true })
 
-			const payload = buildCutoutPayload(ossUrl)
-			const res = await apiCutout(payload)
+			const payload = buildRemoveWatermarkPayload(ossUrl)
+			const res = await apiRemoveWatermark(payload)
 			const body = res?.data
 			if (!isApiSuccess(body)) {
-				throw new Error(getApiMessage(body, '抠图失败'))
+				throw new Error(getApiMessage(body, '去水印失败'))
 			}
 
 			let resultUrl = resolveAiLogResultUrl(body)
@@ -205,29 +186,23 @@
 				if (!aiLogId) {
 					throw new Error('未获取到任务 ID')
 				}
-				logStep(`3/4 轮询任务结果 (id=${aiLogId})`)
-				showTaskLoading({ title: '抠图中...', mask: true })
 				resultUrl = await pollAiLogResult(apiGetAiLog, aiLogId, {
-					onProgress: (attempt, maxAttempts) => {
-						logInfo(`轮询中: ${attempt}/${maxAttempts}`)
-						showTaskLoading({ title: '抠图中...', mask: true })
+					onProgress: () => {
+						showTaskLoading({ title: '去水印中...', mask: true })
 					}
 				})
-				logOk(`任务完成\n${resultUrl}`)
-			} else {
-				logOk(`同步返回结果\n${resultUrl}`)
 			}
 
-			logStep('4/4 下载结果')
 			showTaskLoading({ title: '下载结果...', mask: true })
-			const localPath = await downloadResultImage(resultUrl)
-			setResultFromPath(localPath)
-			logOk('抠图完成')
-			uni.showToast({ title: '抠图完成', icon: 'success' })
+			resultPath.value = await downloadResultImage(resultUrl)
+			uni.showToast({ title: '去水印完成', icon: 'success' })
 			recordTrialUseAfterSuccess()
 		} catch (err) {
-			console.error('[handleCutout]', err)
-			showDebugError('抠图失败', err)
+			console.error('[handleRemoveWatermark]', err)
+			const msg = resolveUserErrorMessage(err, '去水印失败，请换一张图片重试')
+			if (msg) {
+				uni.showToast({ title: msg, icon: 'none' })
+			}
 		} finally {
 			processing.value = false
 			hideTaskLoading()
@@ -266,7 +241,7 @@
 </script>
 
 <style lang="scss" scoped>
-	.cutout-page {
+	.watermark-page {
 		min-height: 100vh;
 		padding: 30rpx;
 		padding-bottom: 140rpx;
@@ -320,17 +295,6 @@
 		position: relative;
 		width: 100%;
 		height: 480rpx;
-
-		&.checker-bg {
-			background-image:
-				linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-				linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%),
-				linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%),
-				linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%);
-			background-size: 24rpx 24rpx;
-			background-position: 0 0, 0 12rpx, 12rpx -12rpx, -12rpx 0;
-			background-color: rgba(0, 0, 0, 0.25);
-		}
 
 		.preview-image {
 			width: 100%;

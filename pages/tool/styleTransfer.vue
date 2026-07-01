@@ -114,7 +114,7 @@
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiCrossDimensionCamera, apiGetAiLog } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
-	import { checkLogin } from '@/utils/user/auth.js'
+	import { checkLogin, beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 	import { extractAiLogId, pollAiLogResult, resolveAiLogResultUrl } from '@/utils/ai/aiLog.js'
 	import {
@@ -208,7 +208,8 @@
 		})
 	}
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 		uni.chooseImage({
 			count: 1,
 			sizeType: ['compressed', 'original'],
@@ -316,6 +317,7 @@
 			const localPath = await downloadResultImage(resultUrl)
 			resultPath.value = localPath
 			logOk('生成完成')
+			recordTrialUseAfterSuccess()
 			uni.showToast({ title: '生成完成', icon: 'success' })
 		} catch (err) {
 			console.error('[handleProcess]', err)

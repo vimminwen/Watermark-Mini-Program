@@ -72,12 +72,22 @@ export const apiGetUserInfo = (userId) =>
 // 修改用户信息
 export const apiModifyUserInfo = data => put('/user', data);
 
-// 修改/重置密码（body: phone, password, oldPassword 忘记密码时 oldPassword 传空）
+// 修改密码（需登录，body: phone, password, oldPassword）
 export const apiModifyUserPw = data => request({
 	url: '/user/password',
 	data,
 	method: 'PUT',
 	silentErrorToast: true
+});
+
+// 忘记密码（无需登录，oldPassword 传空，且不携带本地 token）
+export const apiForgetPassword = data => request({
+	url: '/user/password',
+	data,
+	method: 'PUT',
+	silentErrorToast: true,
+	skipAuthCheck: true,
+	omitToken: true
 });
 
 // 注销账号
@@ -92,11 +102,14 @@ export const apiGetPayHistory = userId => get(`/pay/history/${userId}`);
 // 查询用户vip
 export const apiGetUserVip = () => get('/vip');
 
-// 获取会员价格
-export const apiGetMemberPrice = () => get('/front/member-package/list');
+// 获取会员价格（未登录可浏览套餐）
+export const apiGetMemberPrice = () => request({
+	url: '/front/member-package/list',
+	skipAuthCheck: true
+});
 
 // 非会员每次用功能修改次数
-export const apiModifyMemberNum = data => put('/user/num', data);
+export const apiModifyMemberNum = data => put('/user', data);
 
 // 短视频链接解析（body: { url }）
 export const apiParseVideo = data => request({
@@ -105,6 +118,34 @@ export const apiParseVideo = data => request({
 	method: 'POST',
 	silentErrorToast: true
 });
+
+// 图片加水印（body: appId, imageUrl, text, position, opacity, fontSize, color, offsetX, offsetY, outputFormat）
+export const apiAddWatermark = (data) =>
+	request({
+		url: '/front/image/watermark',
+		data,
+		method: 'POST',
+		silentErrorToast: true
+	});
+
+// 图片去水印（body: { url, functionType }，返回 aiLogId 时需轮询）
+export const apiRemoveWatermark = (data) =>
+	request({
+		url: '/front/ai/removeWatermark',
+		data,
+		method: 'POST',
+		silentErrorToast: true,
+		preserveBigInt: true
+	});
+
+// PDF 加水印（body: appId, pdfUrl, text, watermarkImageUrl, fontSize, opacity, scale, position）
+export const apiAddPdfWatermark = (data) =>
+	request({
+		url: '/front/pdf/watermark',
+		data,
+		method: 'POST',
+		silentErrorToast: true
+	});
 
 // 图片无损放大（body: { imageUrl, scale }）
 export const apiImageUpscale = data => request({

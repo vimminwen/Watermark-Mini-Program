@@ -68,7 +68,7 @@
 	import { computed, ref } from 'vue'
 
 	/** 客服电话，可按实际号码修改 */
-	const SERVICE_PHONE = '400-888-8888'
+	const SERVICE_PHONE = '13450258341'
 
 	const feedbackContent = ref('')
 

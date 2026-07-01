@@ -139,6 +139,24 @@
 			}
 		},
 		{
+			"path": "pages/tool/removeWatermark",
+			"style": {
+				"navigationBarTitleText": "图片去水印"
+			}
+		},
+		{
+			"path": "pages/tool/addWatermark",
+			"style": {
+				"navigationBarTitleText": "图片加水印"
+			}
+		},
+		{
+			"path": "pages/tool/addPdfWatermark",
+			"style": {
+				"navigationBarTitleText": "PDF加水印"
+			}
+		},
+		{
 			"path": "pages/tool/smartErase",
 			"style": {
 				"navigationBarTitleText": "智能消除笔"
@@ -195,7 +213,7 @@
 	],
 	"globalStyle": {
 		"navigationBarTextStyle": "white",
-		"navigationBarTitleText": "云途汇水印",
+		"navigationBarTitleText": "汇水印",
 		"backgroundColor": "#050d40",
 		"backgroundColorContent": "#050d40",
 		"backgroundColorTop": "#050d40",

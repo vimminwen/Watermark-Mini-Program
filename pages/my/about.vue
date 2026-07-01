@@ -4,18 +4,18 @@
 		<view class="about-content">
 			<view class="logo-section">
 				<image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-				<text class="app-name">云途汇水印</text>
+				<text class="app-name">汇水印</text>
 				<text class="app-version">v1.0.0</text>
 			</view>
 			
 			<view class="description-box boxBg">
 				<text class="description-title">关于我们</text>
 				<text class="description-text">
-					云途汇水印是一款功能强大的图片处理工具集合，致力于为用户提供便捷、高效的图片编辑体验。
+					汇水印是一款功能强大的图片处理工具集合，致力于为用户提供便捷、高效的图片编辑体验。
 
 我们提供多种图片处理功能，包括格式转换、尺寸调整、去背景、滤镜效果等，满足您在工作和生活中的各种图片处理需求。
 
-感谢您使用云途汇水印！
+感谢您使用汇水印！
 				</text>
 			</view>
 			
@@ -23,7 +23,7 @@
 				<text class="features-title">功能特色</text>
 				<view class="features-list">
 					<view class="feature-item">
-						<text class="feature-icon">🎨</text>
+						<text class="feature-icon"></text>
 						<text class="feature-text">丰富的图片处理工具</text>
 					</view>
 					<view class="feature-item">
@@ -31,11 +31,11 @@
 						<text class="feature-text">快速高效的处理速度</text>
 					</view>
 					<view class="feature-item">
-						<text class="feature-icon">🔒</text>
+						<text class="feature-icon"></text>
 						<text class="feature-text">隐私安全保护</text>
 					</view>
 					<view class="feature-item">
-						<text class="feature-icon">📱</text>
+						<text class="feature-icon"></text>
 						<text class="feature-text">多平台支持</text>
 					</view>
 				</view>

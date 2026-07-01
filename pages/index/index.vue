@@ -26,8 +26,13 @@
 			</view>
 
 			<view class="tools-list">
-				<navigator :url="getToolNavigateUrl(item)" class="tool-item boxBg"
-					v-for="(item, index) in moreTools" :key="item.id" :style="{ animationDelay: (index * 0.05) + 's' }">
+				<view
+					class="tool-item boxBg"
+					v-for="(item, index) in moreTools"
+					:key="item.id"
+					:style="{ animationDelay: (index * 0.05) + 's' }"
+					@click="navigateToTool(item)"
+				>
 					<view class="item-left">
 						<text class="iconfont item-icon" :class="item.img"></text>
 					</view>
@@ -36,7 +41,7 @@
 						<view class="item-content">{{item.content}}</view>
 					</view>
 					<text class="iconfont icon-xiangyou"></text>
-				</navigator>
+				</view>
 			</view>
 		</view>
 	</view>

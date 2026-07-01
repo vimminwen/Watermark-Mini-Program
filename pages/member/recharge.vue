@@ -12,14 +12,17 @@
 		<view class="package-list" v-else-if="packages.length">
 			<view
 				class="package-item"
-				:class="{ active: selectedIndex === index }"
+				:class="{
+					active: selectedIndex === index,
+					disabled: isUnavailableMemberPackage(item)
+				}"
 				v-for="(item, index) in packages"
 				:key="item.id"
 				@click="selectPackage(index)"
 			>
 				<view class="package-header">
 					<text class="package-name">{{ item.name }}</text>
-					<view class="package-tag" v-if="item.badgeText">{{ item.badgeText }}</view>
+					<view class="package-tag" v-if="getPackageBadgeText(item)">{{ getPackageBadgeText(item) }}</view>
 				</view>
 				<view class="package-price">
 					<text class="price-unit">¥</text>
@@ -46,9 +49,14 @@
 				<text class="price-label">合计：</text>
 				<text class="price-value">¥{{ selectedPackage.price }}</text>
 			</view>
-			<PayButton :member-data="selectedMemberData" @pay-success="onPaySuccess">
+			<PayButton
+				v-if="isLoggedIn"
+				:member-data="selectedMemberData"
+				@pay-success="onPaySuccess"
+			>
 				<view class="pay-button">立即支付</view>
 			</PayButton>
+			<view v-else class="pay-button" @click="promptLogin">立即支付</view>
 		</view>
 	</view>
 </template>
@@ -58,17 +66,41 @@
 
 	const { themeClass } = usePageTheme()
 	import { ref, computed } from 'vue'
-	import { onLoad } from '@dcloudio/uni-app'
+	import { onLoad, onShow } from '@dcloudio/uni-app'
 	import PayButton from '@/components/PayButton.vue'
 	import { apiGetMemberPrice } from '@/api/api.js'
-	import { parseMemberPackageList } from '@/utils/pay/memberPackage.js'
+	import { hasValidToken } from '@/utils/request.js'
+	import {
+		parseMemberPackageList,
+		isUnavailableMemberPackage,
+		getPackageBadgeText
+	} from '@/utils/pay/memberPackage.js'
 
 	const selectedIndex = ref(0)
 	const loading = ref(true)
 	const packages = ref([])
 	const routeOptions = ref({})
+	const isLoggedIn = ref(false)
 	/** 从待支付订单进入时携带的原订单信息 */
 	const pendingOrder = ref(null)
+
+	const refreshLoginState = () => {
+		isLoggedIn.value = hasValidToken()
+	}
+
+	const promptLogin = () => {
+		uni.showModal({
+			title: '提示',
+			content: '请先登录',
+			confirmText: '确定',
+			cancelText: '取消',
+			success: (res) => {
+				if (res.confirm) {
+					uni.navigateTo({ url: '/pages/user/login' })
+				}
+			}
+		})
+	}
 
 	const selectedPackage = computed(() => packages.value[selectedIndex.value] || null)
 
@@ -106,11 +138,25 @@
 	})
 
 	const selectPackage = (index) => {
-		selectedIndex.value = index
 		const pkg = packages.value[index]
+		if (isUnavailableMemberPackage(pkg)) {
+			uni.showModal({
+				title: '提示',
+				content: '暂未开通',
+				showCancel: false,
+				confirmText: '知道了'
+			})
+			return
+		}
+		selectedIndex.value = index
 		if (pendingOrder.value && !orderMatchesPackage(pendingOrder.value, pkg)) {
 			pendingOrder.value = null
 		}
+	}
+
+	const resolveFirstAvailableIndex = (list = packages.value) => {
+		const idx = list.findIndex((item) => !isUnavailableMemberPackage(item))
+		return idx >= 0 ? idx : 0
 	}
 
 	/** 根据订单/路由参数匹配套餐索引 */
@@ -167,6 +213,10 @@
 				vipType: String(options.vipType ?? '').trim()
 			}
 		}
+
+		if (isUnavailableMemberPackage(packages.value[selectedIndex.value])) {
+			selectedIndex.value = resolveFirstAvailableIndex(packages.value)
+		}
 	}
 
 	const loadPackages = async () => {
@@ -186,7 +236,12 @@
 
 	onLoad((options) => {
 		routeOptions.value = options || {}
+		refreshLoginState()
 		loadPackages()
+	})
+
+	onShow(() => {
+		refreshLoginState()
 	})
 
 	const onPaySuccess = () => {
@@ -258,6 +313,10 @@
 				background: rgba(79, 172, 254, 0.15);
 				border-color: #4facfe;
 				box-shadow: 0 0 30rpx rgba(79, 172, 254, 0.3);
+			}
+
+			&.disabled {
+				opacity: 0.72;
 			}
 
 			.package-header {

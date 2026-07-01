@@ -202,6 +202,7 @@
 		calcCanvasLayout,
 		getEditCanvasDpr
 	} from '@/utils/image/imageEditor.js'
+	import { beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 
 	/** 编辑画布最大总像素（约 960×540），兼顾清晰度与流畅度 */
 	const MAX_EDIT_PIXELS = 960 * 540
@@ -1139,7 +1140,8 @@
 		selectedTextIndex.value = -1
 	}
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 		uni.chooseImage({
 			count: 1,
 			sourceType: ['album', 'camera'],
@@ -1185,6 +1187,7 @@
 					filePath,
 					success: () => {
 						uni.showToast({ title: '已保存到相册', icon: 'success' })
+						recordTrialUseAfterSuccess()
 						resolve()
 					},
 					fail: (err) => {

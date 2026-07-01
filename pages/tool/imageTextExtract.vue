@@ -93,7 +93,7 @@
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiImageTextExtraction, apiGetAiLog } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
-	import { checkLogin } from '@/utils/user/auth.js'
+	import { checkLogin, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 	import { pickLocalImage, handlePickLocalImageError } from '@/utils/image/pickLocalImage.js'
 	import { pollAiLogResult, resolveAiLogText, normalizeAiText } from '@/utils/ai/aiLog.js'
@@ -265,6 +265,7 @@
 			resultEditorKey.value += 1
 			showResultPanel.value = true
 			uni.showToast({ title: '识别完成，可点击编辑', icon: 'success' })
+			recordTrialUseAfterSuccess()
 		} catch (err) {
 			console.error('[imageTextExtract]', err)
 			showDebugError('识别失败', err)

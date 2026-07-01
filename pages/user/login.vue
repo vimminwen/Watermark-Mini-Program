@@ -5,19 +5,19 @@
 			<view class="logo">
 				<image class="logo-img" src="/static/logo.png" mode="aspectFit" />
 			</view>
-			<view class="title">云途汇水印</view>
+			<view class="title">汇水印</view>
 			<view class="subtitle">登录后享受更多服务</view>
 		</view>
 
 		<view class="login-form">
 			<view class="input-group">
-				<text class="input-icon">📱</text>
+				<text class="input-icon"></text>
 				<input class="input-field" type="number" placeholder="请输入手机号" v-model="phone" maxlength="11" />
 			</view>
 
-			<view class="input-group">
-				<text class="input-icon">🔒</text>
-				<input class="input-field" type="password" placeholder="请输入密码" v-model="password" maxlength="20" />
+			<view class="input-group input-group--password">
+				<text class="input-icon"></text>
+				<password-field v-model="password" placeholder="请输入密码" :maxlength="20" />
 			</view>
 
 			<view class="extra-actions">
@@ -25,11 +25,7 @@
 				<text class="link-text" @click="goToForgetPassword">忘记密码？</text>
 			</view>
 
-			<agreement-consent
-				v-model="agreedToTerms"
-				@open-agreement="goToAgreement"
-				@open-privacy="goToPrivacy"
-			/>
+			<agreement-consent v-model="agreedToTerms" @open-agreement="goToAgreement" @open-privacy="goToPrivacy" />
 
 			<view class="login-button" :class="{ disabled: loading || quickLoginLoading }" @click="handleLogin">
 				<text>{{ loading ? '登录中...' : '登录' }}</text>
@@ -43,11 +39,7 @@
 			<view class="quick-login-wrap">
 				<phone-quick-login-btn custom-class="login-quick-btn" :disabled="loading" show-dev-tip
 					@loading="onQuickLoginLoading" />
-				<view
-					v-if="!agreedToTerms"
-					class="quick-login-mask"
-					@tap.stop="handleQuickLoginBlocked"
-				/>
+				<view v-if="!agreedToTerms" class="quick-login-mask" @tap.stop="handleQuickLoginBlocked" />
 			</view>
 		</view>
 	</view>
@@ -55,275 +47,324 @@
 </template>
 
 <script setup>
-	import { usePageTheme } from '@/utils/theme/useTheme.js'
+	import {
+		usePageTheme
+	} from '@/utils/theme/useTheme.js'
 
-	const { themeClass } = usePageTheme()
-import { ref } from 'vue'
-import { apiLogin } from '@/api/api.js'
-import { isLoginSuccess } from '@/utils/user/authHelper.js'
-import { clearAuthSession, getApiMessage, persistAuthSession, refreshUserProfile } from '@/utils/user/session.js'
-import { isNoTokenError } from '@/utils/request.js'
-import { buildLoginPayload } from '@/utils/user/rsaEncrypt.js'
-import { useAgreementConsent } from '@/utils/user/agreementConsent.js'
-import AgreementConsent from '@/components/user/AgreementConsent.vue'
+	const {
+		themeClass
+	} = usePageTheme()
+	import {
+		ref
+	} from 'vue'
+	import {
+		apiLogin
+	} from '@/api/api.js'
+	import {
+		isLoginSuccess
+	} from '@/utils/user/authHelper.js'
+	import {
+		clearAuthSession,
+		getApiMessage,
+		persistAuthSession,
+		refreshUserProfile
+	} from '@/utils/user/session.js'
+	import {
+		isNoTokenError
+	} from '@/utils/request.js'
+	import {
+		buildLoginPayload
+	} from '@/utils/user/rsaEncrypt.js'
+	import {
+		useAgreementConsent
+	} from '@/utils/user/agreementConsent.js'
+	import AgreementConsent from '@/components/user/AgreementConsent.vue'
+	import PasswordField from '@/components/user/PasswordField.vue'
 
-const phone = ref('')
-const password = ref('')
-const loading = ref(false)
-const quickLoginLoading = ref(false)
-const { agreedToTerms, ensureAgreed } = useAgreementConsent()
+	const phone = ref('')
+	const password = ref('')
+	const loading = ref(false)
+	const quickLoginLoading = ref(false)
+	const {
+		agreedToTerms,
+		ensureAgreed
+	} = useAgreementConsent()
 
-const onQuickLoginLoading = (val) => {
-	quickLoginLoading.value = val
-}
-
-const isValidPhone = () => /^1\d{10}$/.test(phone.value)
-
-const finishLoginSuccess = async (body) => {
-	const { token, userId } = persistAuthSession(body)
-	if (!token) {
-		uni.showToast({ title: '登录成功但未获取到 token', icon: 'none' })
-		return
+	const onQuickLoginLoading = (val) => {
+		quickLoginLoading.value = val
 	}
-	if (userId) {
-		await refreshUserProfile(userId)
-	}
-	uni.showToast({ title: '登录成功', icon: 'success' })
-	setTimeout(() => {
-		uni.reLaunch({
-			url: '/pages/index/index'
+
+	const isValidPhone = () => /^1\d{10}$/.test(phone.value)
+
+	const finishLoginSuccess = async (body) => {
+		const {
+			token,
+			userId
+		} = persistAuthSession(body)
+		if (!token) {
+			uni.showToast({
+				title: '登录成功但未获取到 token',
+				icon: 'none'
+			})
+			return
+		}
+		if (userId) {
+			await refreshUserProfile(userId)
+		}
+		uni.showToast({
+			title: '登录成功',
+			icon: 'success'
 		})
-	}, 1500)
-}
-
-const handleLogin = () => {
-	if (loading.value || quickLoginLoading.value) return
-	ensureAgreed(doLogin)
-}
-
-const handleQuickLoginBlocked = () => {
-	if (loading.value || quickLoginLoading.value) return
-	ensureAgreed()
-}
-
-const doLogin = async () => {
-	if (!isValidPhone()) {
-		uni.showToast({ title: '请输入正确的手机号', icon: 'none' })
-		return
-	}
-	if (!password.value) {
-		uni.showToast({ title: '请输入密码', icon: 'none' })
-		return
+		setTimeout(() => {
+			uni.reLaunch({
+				url: '/pages/index/index'
+			})
+		}, 1500)
 	}
 
-	loading.value = true
-	uni.showLoading({ title: '登录中...', mask: true })
-	try {
-		// 避免请求头携带过期 token，导致后端返回「请先登录」
-		clearAuthSession()
-		const res = await apiLogin(buildLoginPayload(phone.value, password.value))
-		const body = res.data
-		if (!isLoginSuccess(body)) {
-			let failMsg = getApiMessage(body, '登录失败')
-			if (/请先登录/i.test(failMsg)) {
-				failMsg = '账号或密码错误，请重试'
-			}
-			uni.showToast({ title: failMsg, icon: 'none' })
+	const handleLogin = () => {
+		if (loading.value || quickLoginLoading.value) return
+		ensureAgreed(doLogin)
+	}
+
+	const handleQuickLoginBlocked = () => {
+		if (loading.value || quickLoginLoading.value) return
+		ensureAgreed()
+	}
+
+	const doLogin = async () => {
+		if (!isValidPhone()) {
+			uni.showToast({
+				title: '请输入正确的手机号',
+				icon: 'none'
+			})
+			return
+		}
+		if (!password.value) {
+			uni.showToast({
+				title: '请输入密码',
+				icon: 'none'
+			})
 			return
 		}
 
-		await finishLoginSuccess(body)
-	} catch (err) {
-		console.error('[handleLogin]', err)
-		let msg = err?.message || getApiMessage(err?.data, '登录失败，请稍后重试')
-		if (isNoTokenError(err)) {
-			msg = '登录请求被拦截，请重新编译后再试'
-		} else if (/请先登录/i.test(msg)) {
-			msg = getApiMessage(err?.data, '账号或密码错误，请重试')
+		loading.value = true
+		uni.showLoading({
+			title: '登录中...',
+			mask: true
+		})
+		try {
+			// 避免请求头携带过期 token，导致后端返回「请先登录」
+			clearAuthSession()
+			const res = await apiLogin(buildLoginPayload(phone.value, password.value))
+			const body = res.data
+			if (!isLoginSuccess(body)) {
+				let failMsg = getApiMessage(body, '登录失败')
+				if (/请先登录/i.test(failMsg)) {
+					failMsg = '账号或密码错误，请重试'
+				}
+				uni.showToast({
+					title: failMsg,
+					icon: 'none'
+				})
+				return
+			}
+
+			await finishLoginSuccess(body)
+		} catch (err) {
+			console.error('[handleLogin]', err)
+			let msg = err?.message || getApiMessage(err?.data, '登录失败，请稍后重试')
+			if (isNoTokenError(err)) {
+				msg = '登录请求被拦截，请重新编译后再试'
+			} else if (/请先登录/i.test(msg)) {
+				msg = getApiMessage(err?.data, '账号或密码错误，请重试')
+			}
+			uni.showToast({
+				title: msg,
+				icon: 'none'
+			})
+		} finally {
+			loading.value = false
+			uni.hideLoading()
 		}
-		uni.showToast({ title: msg, icon: 'none' })
-	} finally {
-		loading.value = false
-		uni.hideLoading()
 	}
-}
 
-const goToRegister = () => {
-	uni.navigateTo({
-		url: '/pages/user/register'
-	})
-}
+	const goToRegister = () => {
+		uni.navigateTo({
+			url: '/pages/user/register'
+		})
+	}
 
-const goToForgetPassword = () => {
-	uni.navigateTo({
-		url: '/pages/user/forgetPassword'
-	})
-}
+	const goToForgetPassword = () => {
+		uni.navigateTo({
+			url: '/pages/user/forgetPassword'
+		})
+	}
 
-const goToAgreement = () => {
-	uni.navigateTo({
-		url: '/pages/my/agreement'
-	})
-}
+	const goToAgreement = () => {
+		uni.navigateTo({
+			url: '/pages/my/agreement'
+		})
+	}
 
-const goToPrivacy = () => {
-	uni.navigateTo({
-		url: '/pages/my/privacy'
-	})
-}
+	const goToPrivacy = () => {
+		uni.navigateTo({
+			url: '/pages/my/privacy'
+		})
+	}
 </script>
 
 <style lang="scss">
-.login-page {
-	min-height: 100vh;
-	background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
-	padding: 80rpx 60rpx;
-}
-
-.header {
-	text-align: center;
-	margin-bottom: 100rpx;
-
-	.logo {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		margin-bottom: 30rpx;
-
-		.logo-img {
-			width: 160rpx;
-			height: 160rpx;
-			border-radius: 32rpx;
-		}
+	.login-page {
+		min-height: 100vh;
+		background: linear-gradient(to bottom, var(--page-bg-start), var(--page-bg-end));
+		padding: 80rpx 60rpx;
 	}
 
-	.title {
-		font-size: 48rpx;
-		font-weight: bold;
-		color: var(--text-primary);
-		margin-bottom: 15rpx;
-	}
+	.header {
+		text-align: center;
+		margin-bottom: 100rpx;
 
-	.subtitle {
-		font-size: 28rpx;
-		color: var(--text-subtle);
-	}
-}
+		.logo {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			margin-bottom: 30rpx;
 
-.login-form {
-	.input-group {
-		display: flex;
-		align-items: center;
-		background: var(--surface-bg);
-		border-radius: 16rpx;
-		padding: 30rpx;
-		margin-bottom: 30rpx;
-
-		.input-icon {
-			font-size: 36rpx;
-			margin-right: 20rpx;
-		}
-
-		.input-field {
-			flex: 1;
-			font-size: 30rpx;
-			color: var(--text-primary);
-
-			&::placeholder {
-				color: var(--text-faint);
+			.logo-img {
+				width: 160rpx;
+				height: 160rpx;
+				border-radius: 32rpx;
 			}
 		}
-	}
 
-	.extra-actions {
-		display: flex;
-		justify-content: space-between;
-		margin-bottom: 60rpx;
-
-		.link-text {
-			font-size: 26rpx;
-			color: #4facfe;
-		}
-	}
-
-	.login-button {
-		background: linear-gradient(to right, #4facfe, #00f2fe);
-		padding: 30rpx;
-		border-radius: 50rpx;
-		text-align: center;
-		margin-bottom: 40rpx;
-
-		&.disabled {
-			opacity: 0.7;
-		}
-
-		text {
-			font-size: 32rpx;
+		.title {
+			font-size: 48rpx;
 			font-weight: bold;
 			color: var(--text-primary);
+			margin-bottom: 15rpx;
+		}
+
+		.subtitle {
+			font-size: 28rpx;
+			color: var(--text-subtle);
 		}
 	}
 
-	:deep(.login-quick-btn) {
-		margin-bottom: 0;
-	}
-
-	.quick-login-wrap {
-		position: relative;
-		margin-bottom: 40rpx;
-	}
-
-	.quick-login-mask {
-		position: absolute;
-		left: 0;
-		top: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 2;
-	}
-
-	.divider {
-		display: flex;
-		align-items: center;
-		margin-bottom: 60rpx;
-
-		.divider-line {
-			flex: 1;
-			height: 1rpx;
-			background: var(--surface-bg-strong);
-		}
-
-		.divider-text {
-			font-size: 24rpx;
-			color: var(--text-muted);
-			padding: 0 30rpx;
-		}
-	}
-
-	.third-party {
-		display: flex;
-		justify-content: center;
-
-		.third-party-btn {
+	.login-form {
+		.input-group {
 			display: flex;
-			flex-direction: column;
 			align-items: center;
-			padding: 30rpx 80rpx;
-			background: rgba(79, 172, 254, 0.1);
-			border-radius: 20rpx;
-			border: 2rpx solid rgba(79, 172, 254, 0.3);
+			background: var(--surface-bg);
+			border-radius: 16rpx;
+			padding: 30rpx;
+			margin-bottom: 30rpx;
 
-			.btn-icon {
-				font-size: 60rpx;
-				margin-bottom: 15rpx;
+			.input-icon {
+				font-size: 36rpx;
+				margin-right: 20rpx;
+				flex-shrink: 0;
 			}
 
-			.btn-text {
+			.input-field {
+				flex: 1;
+				font-size: 30rpx;
+				color: var(--text-primary);
+
+				&::placeholder {
+					color: var(--text-faint);
+				}
+			}
+		}
+
+		.extra-actions {
+			display: flex;
+			justify-content: space-between;
+			margin-bottom: 60rpx;
+
+			.link-text {
 				font-size: 26rpx;
+				color: #4facfe;
+			}
+		}
+
+		.login-button {
+			background: linear-gradient(to right, #4facfe, #00f2fe);
+			padding: 30rpx;
+			border-radius: 50rpx;
+			text-align: center;
+			margin-bottom: 40rpx;
+
+			&.disabled {
+				opacity: 0.7;
+			}
+
+			text {
+				font-size: 32rpx;
+				font-weight: bold;
 				color: var(--text-primary);
 			}
 		}
-	}
-}
 
+		:deep(.login-quick-btn) {
+			margin-bottom: 0;
+		}
+
+		.quick-login-wrap {
+			position: relative;
+			margin-bottom: 40rpx;
+		}
+
+		.quick-login-mask {
+			position: absolute;
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			z-index: 2;
+		}
+
+		.divider {
+			display: flex;
+			align-items: center;
+			margin-bottom: 60rpx;
+
+			.divider-line {
+				flex: 1;
+				height: 1rpx;
+				background: var(--surface-bg-strong);
+			}
+
+			.divider-text {
+				font-size: 24rpx;
+				color: var(--text-muted);
+				padding: 0 30rpx;
+			}
+		}
+
+		.third-party {
+			display: flex;
+			justify-content: center;
+
+			.third-party-btn {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				padding: 30rpx 80rpx;
+				background: rgba(79, 172, 254, 0.1);
+				border-radius: 20rpx;
+				border: 2rpx solid rgba(79, 172, 254, 0.3);
+
+				.btn-icon {
+					font-size: 60rpx;
+					margin-bottom: 15rpx;
+				}
+
+				.btn-text {
+					font-size: 26rpx;
+					color: var(--text-primary);
+				}
+			}
+		}
+	}
 </style>

@@ -15,34 +15,53 @@ export const MAX_UPSCALE_OUTPUT_SIDE = 4096;
 /** 计算放大后的实际输出尺寸（与 upscaleImageLocal 逻辑一致） */
 export const computeUpscaleOutputSize = (srcWidth, srcHeight, scale) => {
 	const upscaleScale = Number(scale) || 1;
-	let width = Math.round(Number(srcWidth) || 0);
-	let height = Math.round(Number(srcHeight) || 0);
+	const srcW = Math.round(Number(srcWidth) || 0);
+	const srcH = Math.round(Number(srcHeight) || 0);
 
-	if (!width || !height) {
+	if (!srcW || !srcH) {
 		return { width: 0, height: 0, capped: false };
 	}
 
 	if (upscaleScale === 1) {
-		return { width, height, capped: false };
+		return { width: srcW, height: srcH, capped: false };
 	}
 
-	const outW = width * upscaleScale;
-	const outH = height * upscaleScale;
-	const maxSide = Math.max(outW, outH);
-	let capped = false;
+	let targetW = Math.round(srcW * upscaleScale);
+	let targetH = Math.round(srcH * upscaleScale);
+	const maxSide = Math.max(targetW, targetH);
+	let capped = maxSide > MAX_UPSCALE_OUTPUT_SIDE;
 
-	if (maxSide > MAX_UPSCALE_OUTPUT_SIDE) {
-		const ratio = MAX_UPSCALE_OUTPUT_SIDE / maxSide;
-		width = Math.round(width * ratio);
-		height = Math.round(height * ratio);
-		capped = true;
+	if (capped) {
+		// 直接对目标尺寸等比压缩，最长边压到 4096，避免「先缩原图再放大」的二次取整误差
+		const capRatio = MAX_UPSCALE_OUTPUT_SIDE / maxSide;
+		targetW = Math.max(1, Math.min(MAX_UPSCALE_OUTPUT_SIDE, Math.round(targetW * capRatio)));
+		targetH = Math.max(1, Math.min(MAX_UPSCALE_OUTPUT_SIDE, Math.round(targetH * capRatio)));
 	}
 
-	return {
-		width: Math.round(width * upscaleScale),
-		height: Math.round(height * upscaleScale),
-		capped
-	};
+	return { width: targetW, height: targetH, capped };
+};
+
+/** 该倍数下输出是否已达当前图片可放大的上限（更高倍数尺寸不再增大） */
+export const isScaleAtMaxOutput = (srcWidth, srcHeight, scale) => {
+	const out = computeUpscaleOutputSize(srcWidth, srcHeight, scale);
+	if (!out.width || !out.height) return false;
+
+	let maxSide = 0;
+	for (const opt of UPSCALE_OPTIONS) {
+		const o = computeUpscaleOutputSize(srcWidth, srcHeight, opt.value);
+		maxSide = Math.max(maxSide, o.width, o.height);
+	}
+
+	const thisSide = Math.max(out.width, out.height);
+	if (thisSide < maxSide) return false;
+
+	const scaleNum = Number(scale) || 1;
+	if (scaleNum === 1) {
+		const next = computeUpscaleOutputSize(srcWidth, srcHeight, 2);
+		return Math.max(next.width, next.height) === thisSide;
+	}
+
+	return true;
 };
 
 /** 解析放大接口返回的图片地址（后端接口备用） */

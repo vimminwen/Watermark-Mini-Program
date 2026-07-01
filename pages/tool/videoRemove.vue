@@ -243,7 +243,7 @@
 	import { onLoad } from '@dcloudio/uni-app'
 	import { apiSubtitleRemoval, apiGetAiLog } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
-	import { checkLogin } from '@/utils/user/auth.js'
+	import { checkLogin, beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 	import { extractAiLogId, pollAiLogResult, resolveAiLogResultUrl } from '@/utils/ai/aiLog.js'
 	import { calcAspectFitRect, clampNormCrop, applyCropResize, MIN_CROP_NORM_SIZE } from '@/utils/image/imageCrop.js'
 	import { uploadVideoToOss } from '@/utils/video/ossUpload.js'
@@ -652,7 +652,9 @@
 		}
 	}
 
-	const chooseVideo = () => {
+	const chooseVideo = async () => {
+		if (!(await beforeUploadCheck())) return
+
 		// 微信小程序优先 chooseMedia（maxDuration 限制拍摄时长；相册视频在 applyVideoFile 二次校验）
 		if (typeof uni.chooseMedia === 'function') {
 			uni.chooseMedia({
@@ -923,6 +925,7 @@
 			const localPath = await downloadVideo(resultUrl)
 			resultPath.value = localPath
 			logOk('处理完成')
+			recordTrialUseAfterSuccess()
 			uni.showToast({ title: '处理完成', icon: 'success' })
 		} catch (err) {
 			console.error('[handleRemove]', err)

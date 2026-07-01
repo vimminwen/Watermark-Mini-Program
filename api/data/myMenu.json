@@ -1,29 +1,27 @@
-[
-	{
+[{
 		"id": "1",
 		"title": "常用功能",
 		"icon": "🎯",
 		"sort": "1",
 		"show": "1",
-		"children": [
-			{
+		"children": [{
 				"id": "1-1",
-				"title": "全部工具",
-				"icon": "🛠️",
-				"action": "goToTools",
-				"url": "/pages/use/index",
+				"title": "联系客服",
+				"icon": "📞",
+				"action": "",
+				"url": "/pages/my/contact",
 				"sort": "1",
 				"show": "1"
 			},
 			{
-				"id": "1-4",
-				"title": "设置",
-				"icon": "⚙️",
-				"action": "",
-				"url": "/pages/my/settings",
-				"sort": "4",
+				"id": "1-2",
+				"title": "全部工具",
+				"icon": "🛠️",
+				"action": "goToTools",
+				"url": "/pages/use/index",
+				"sort": "2",
 				"show": "1"
-			}
+			},
 		]
 	},
 	{
@@ -32,23 +30,13 @@
 		"icon": "ℹ️",
 		"sort": "2",
 		"show": "1",
-		"children": [
-			{
+		"children": [{
 				"id": "2-1",
 				"title": "关于我们",
 				"icon": "🏢",
 				"action": "",
 				"url": "/pages/my/about",
 				"sort": "1",
-				"show": "1"
-			},
-			{
-				"id": "2-2",
-				"title": "联系客服",
-				"icon": "📞",
-				"action": "",
-				"url": "/pages/my/contact",
-				"sort": "2",
 				"show": "1"
 			},
 			{
@@ -85,6 +73,15 @@
 				"action": "",
 				"url": "/pages/my/wechat",
 				"sort": "6",
+				"show": "1"
+			},
+			{
+				"id": "2-7",
+				"title": "设置",
+				"icon": "⚙️",
+				"action": "",
+				"url": "/pages/my/settings",
+				"sort": "7",
 				"show": "1"
 			}
 		]

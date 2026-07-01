@@ -10,19 +10,20 @@ const randomString = (len = 16) => {
 };
 
 /**
- * 上传本地图片到 OSS
+ * 上传本地文件到 OSS
  * @param {string} filePath
- * @returns {Promise<string>} 公网可访问 URL
+ * @param {{ prefix?: string, ext?: string }} options
  */
-export const uploadImageToOss = (filePath) => {
+export const uploadFileToOss = (filePath, options = {}) => {
 	return new Promise((resolve, reject) => {
 		if (!filePath) {
-			reject(new Error('图片路径为空'));
+			reject(new Error('文件路径为空'));
 			return;
 		}
 
-		const ext = /\.(\w+)(\?|$)/.exec(filePath)?.[1] || 'jpg';
-		const key = `djia/upscale/${Date.now()}_${randomString(8)}.${ext}`;
+		const ext = options.ext || /\.(\w+)(\?|$)/.exec(filePath)?.[1] || 'bin';
+		const prefix = options.prefix || 'djia/files';
+		const key = `${prefix}/${Date.now()}_${randomString(8)}.${ext}`;
 
 		uni.uploadFile({
 			url: OSS.host,
@@ -46,3 +47,11 @@ export const uploadImageToOss = (filePath) => {
 		});
 	});
 };
+
+/** 上传本地图片到 OSS */
+export const uploadImageToOss = (filePath) => {
+	return uploadFileToOss(filePath, { prefix: 'djia/upscale', ext: /\.(\w+)(\?|$)/.exec(filePath)?.[1] || 'jpg' });
+};
+
+/** 上传 PDF 到 OSS */
+export const uploadPdfToOss = (filePath) => uploadFileToOss(filePath, { prefix: 'djia/pdf', ext: 'pdf' });

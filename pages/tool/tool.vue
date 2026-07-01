@@ -41,17 +41,25 @@
 			</view>
 			<view class="scale-options">
 				<view
-					v-for="item in scaleOptions"
+					v-for="item in scaleOptionsWithMeta"
 					:key="item.value"
 					class="scale-chip"
-					:class="{ active: scale === item.value, disabled: processing }"
+					:class="{
+						active: scale === item.value,
+						disabled: processing,
+						'at-max': item.atMax
+					}"
 					@tap="selectScale(item.value)"
 				>
 					<text class="scale-label">{{ item.label }}</text>
 					<text v-if="originSize.width" class="scale-hint">
-						→ {{ getScaleOutputSize(item.value).width }}×{{ getScaleOutputSize(item.value).height }}
+						→ {{ item.outputSize.width }}×{{ item.outputSize.height }}
 					</text>
 				</view>
+			</view>
+			<view v-if="hasMaxScaleOptions" class="scale-max-note">
+				<text class="scale-max-note-icon">●</text>
+				<text>高亮选项表示该倍数下输出已达上限，继续提高倍数尺寸不再增大</text>
 			</view>
 
 			<view
@@ -102,7 +110,8 @@
 	// import { buildLosslessZoomPayload } from '@/utils/image/losslessZoom.js'
 	// import { useDebugLog, showTaskLoading, hideTaskLoading } from '@/utils/debug/useDebugLog.js'
 	// import { baseUrl } from '@/utils/http.js'
-	import { UPSCALE_OPTIONS, upscaleImageLocal, computeUpscaleOutputSize } from '@/utils/image/imageUpscale.js'
+	import { UPSCALE_OPTIONS, upscaleImageLocal, computeUpscaleOutputSize, isScaleAtMaxOutput } from '@/utils/image/imageUpscale.js'
+	import { beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 
 	const instance = getCurrentInstance()
 
@@ -132,12 +141,23 @@
 		computeUpscaleOutputSize(originSize.value.width, originSize.value.height, scale.value)
 	)
 
-	const getScaleOutputSize = (scaleValue) =>
-		computeUpscaleOutputSize(originSize.value.width, originSize.value.height, scaleValue)
+	const scaleOptionsWithMeta = computed(() => {
+		const w = originSize.value.width
+		const h = originSize.value.height
+		return scaleOptions.map((item) => ({
+			...item,
+			outputSize: computeUpscaleOutputSize(w, h, item.value),
+			atMax: w && h ? isScaleAtMaxOutput(w, h, item.value) : false
+		}))
+	})
+
+	const hasMaxScaleOptions = computed(() =>
+		scaleOptionsWithMeta.value.some((item) => item.atMax)
+	)
 
 	const tips = [
 		'选择需要放大的照片，推荐原图边长不超过 2000px',
-		'支持 1× ~ 8× 多种倍数，在手机本地完成放大',
+		'支持 1× ~ 8× 多种倍数，最高支持4096px',
 		'输出最长边超过 4096px 时会自动限制，选项尺寸即为实际输出',
 		'满意后保存到相册；所有处理均在本地完成，保护隐私'
 	]
@@ -160,7 +180,8 @@
 		})
 	}
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 		uni.chooseImage({
 			count: 1,
 			sizeType: ['compressed', 'original'],
@@ -268,6 +289,7 @@
 				instance?.proxy ?? instance
 			)
 			setResultFromPath(tempPath, { width, height })
+			recordTrialUseAfterSuccess()
 			uni.showToast({ title: '放大完成', icon: 'success' })
 		} catch (err) {
 			console.error('[handleUpscale]', err)
@@ -510,7 +532,31 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 16rpx;
+		margin-bottom: 16rpx;
+	}
+
+	.scale-max-note {
+		display: flex;
+		align-items: flex-start;
+		gap: 10rpx;
+		padding: 16rpx 18rpx;
 		margin-bottom: 24rpx;
+		border-radius: 12rpx;
+		background: rgba(254, 193, 64, 0.1);
+		border: 1rpx solid rgba(254, 193, 64, 0.25);
+
+		.scale-max-note-icon {
+			flex-shrink: 0;
+			font-size: 18rpx;
+			line-height: 1.6;
+			color: #fec140;
+		}
+
+		text {
+			font-size: 24rpx;
+			line-height: 1.5;
+			color: rgba(254, 193, 64, 0.95);
+		}
 	}
 
 	.scale-chip {
@@ -548,6 +594,32 @@
 
 			.scale-hint {
 				color: var(--text-muted);
+			}
+		}
+
+		&.at-max:not(.active) {
+			background: rgba(254, 193, 64, 0.12);
+			border-color: rgba(254, 193, 64, 0.45);
+
+			.scale-label {
+				color: #fec140;
+			}
+
+			.scale-hint {
+				color: rgba(254, 193, 64, 0.85);
+			}
+		}
+
+		&.active.at-max {
+			background: rgba(254, 193, 64, 0.18);
+			border-color: #fec140;
+
+			.scale-label {
+				color: #fec140;
+			}
+
+			.scale-hint {
+				color: rgba(254, 193, 64, 0.85);
 			}
 		}
 

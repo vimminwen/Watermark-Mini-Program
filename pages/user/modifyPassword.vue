@@ -7,30 +7,25 @@
 		</view>
 		
 		<view class="form-section boxBg">
-			<view class="form-item" v-if="hasPassword">
+			<view class="form-item form-item--password" v-if="hasPassword">
 				<text class="form-icon">🔐</text>
-				<input 
-					class="form-input" 
-					type="password" 
-					v-model="oldPassword" 
+				<password-field
+					v-model="oldPassword"
 					placeholder="请输入旧密码"
 				/>
 			</view>
-			<view class="form-item">
+			<ios-autofill-decoy />
+			<view class="form-item form-item--password">
 				<text class="form-icon">🔒</text>
-				<input 
-					class="form-input" 
-					type="password" 
-					v-model="newPassword" 
+				<password-field
+					v-model="newPassword"
 					placeholder="请输入新密码（6-20位）"
 				/>
 			</view>
-			<view class="form-item">
+			<view class="form-item form-item--password">
 				<text class="form-icon">🔒</text>
-				<input 
-					class="form-input" 
-					type="password" 
-					v-model="confirmPassword" 
+				<password-field
+					v-model="confirmPassword"
 					placeholder="请确认密码"
 				/>
 			</view>
@@ -57,9 +52,10 @@
 	import { apiModifyUserPw } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
 	import { clearAuthSession } from '@/utils/user/session.js'
-	import { encryptRsa } from '@/utils/user/rsaEncrypt.js'
 	import { hasValidToken } from '@/utils/request.js'
 	import { resolveHasPassword } from '@/utils/user/passwordStatus.js'
+	import PasswordField from '@/components/user/PasswordField.vue'
+	import IosAutofillDecoy from '@/components/user/IosAutofillDecoy.vue'
 
 	const hasPassword = ref(false)
 	const oldPassword = ref('')
@@ -113,9 +109,9 @@
 		uni.showLoading({ title: '提交中...', mask: true })
 		try {
 			const res = await apiModifyUserPw({
-				phone: encryptRsa(phone.value),
-				password: encryptRsa(newPassword.value),
-				oldPassword: hasPassword.value ? encryptRsa(oldPassword.value) : ''
+				phone: phone.value,
+				password: newPassword.value,
+				oldPassword: hasPassword.value ? oldPassword.value : ''
 			})
 			const body = res.data
 			if (!isApiSuccess(body)) {
@@ -183,6 +179,7 @@
 			.form-icon {
 				font-size: 36rpx;
 				margin-right: 20rpx;
+				flex-shrink: 0;
 			}
 
 			.form-input {

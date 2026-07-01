@@ -4,12 +4,17 @@
 		<view class="wechat-content">
 			<view class="qr-section">
 				<view class="qr-box">
-					<image class="qr-code" src="/static/gzh.jpg" mode="aspectFit"></image>
+					<image
+						class="qr-code"
+						src="/static/gzh.jpg"
+						mode="aspectFit"
+						show-menu-by-longpress
+					/>
 					<view class="qr-mask">
-						<text class="mask-text">扫码关注</text>
+						<text class="mask-text">长按识别关注</text>
 					</view>
 				</view>
-				<text class="qr-title">云途汇水印</text>
+				<text class="qr-title">汇水印</text>
 				<text class="qr-desc">关注公众号获取更多实用工具</text>
 			</view>
 			
@@ -17,7 +22,7 @@
 				<text class="benefits-title">关注公众号享更多权益</text>
 				<view class="benefits-list">
 					<view class="benefit-item">
-						<text class="benefit-icon">🎁</text>
+						<text class="benefit-icon"></text>
 						<text class="benefit-text">专属福利活动</text>
 					</view>
 					<view class="benefit-item">
@@ -25,15 +30,15 @@
 						<text class="benefit-text">新功能抢先体验</text>
 					</view>
 					<view class="benefit-item">
-						<text class="benefit-icon">💡</text>
+						<text class="benefit-icon"></text>
 						<text class="benefit-text">使用技巧分享</text>
 					</view>
 				</view>
 			</view>
 			
 			<view class="tips-box">
-				<text class="tips-title">💡 温馨提示</text>
-				<text class="tips-content">使用微信扫一扫扫描上方二维码，即可关注我们的官方公众号。</text>
+				<text class="tips-title"> 温馨提示</text>
+				<text class="tips-content">长按上方二维码，选择「识别图中二维码」即可关注公众号；也可使用微信扫一扫扫描。</text>
 			</view>
 		</view>
 	</view>
@@ -89,6 +94,7 @@
 				background: rgba(0, 0, 0, 0.6);
 				padding: 20rpx;
 				text-align: center;
+				pointer-events: none;
 				
 				.mask-text {
 					font-size: 26rpx;

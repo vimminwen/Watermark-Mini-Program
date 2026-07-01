@@ -96,7 +96,7 @@
 	import { useTheme } from '@/utils/theme/useTheme.js'
 	import { apiVideoTransformationTextForUrl, apiGetAiLog } from '@/api/api.js'
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
-	import { checkLogin } from '@/utils/user/auth.js'
+	import { checkLogin, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 	import { uploadMediaToOss } from '@/utils/video/ossUpload.js'
 	import {
 		pickLocalVideoForText,
@@ -366,6 +366,7 @@
 			resultText.value = text
 			showResultPanel.value = true
 			uni.showToast({ title: '转写完成，可点击编辑', icon: 'success' })
+			recordTrialUseAfterSuccess()
 		} catch (err) {
 			console.error(`[MediaTextExtract:${props.mode}]`, err)
 			showDebugError('转写失败', err)

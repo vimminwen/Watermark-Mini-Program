@@ -97,8 +97,16 @@
 
 	const { themeClass } = usePageTheme()
 	import { ref, computed, getCurrentInstance } from 'vue'
-	import { FILTER_PRESETS, FILTER_DEFAULT_INTENSITY, getFilterById, buildFilterCss, buildFilterEffects } from '@/utils/image/filters.js'
+	import {
+		FILTER_PRESETS,
+		FILTER_DEFAULT_INTENSITY,
+		getFilterById,
+		buildFilterCss,
+		buildFilterEffects,
+		isIdentityFilterEffects
+	} from '@/utils/image/filters.js'
 	import { exportImageWithFilter } from '@/utils/image/canvasFilter.js'
+	import { beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 
 	const instance = getCurrentInstance()
 
@@ -122,7 +130,8 @@
 		'所有处理均在手机本地完成，保护隐私'
 	]
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 		uni.chooseImage({
 			count: 1,
 			sizeType: ['compressed', 'original'],
@@ -163,48 +172,47 @@
 		if (saving.value || !imagePath.value) return
 
 		saving.value = true
-		uni.showLoading({ title: '生成中...', mask: true })
 
 		try {
 			const filterEffects = buildFilterEffects(activeFilter.value, intensity.value)
-			const tempPath = await exportImageWithFilter(
-				'#exportCanvas',
-				imagePath.value,
-				filterEffects,
-				instance?.proxy ?? instance
-			)
+			const tempPath = isIdentityFilterEffects(filterEffects)
+				? imagePath.value
+				: await exportImageWithFilter(
+						'#exportCanvas',
+						imagePath.value,
+						filterEffects,
+						instance?.proxy ?? instance
+					)
 
-			uni.saveImageToPhotosAlbum({
-				filePath: tempPath,
-				success: () => {
-					uni.showToast({ title: '已保存到相册', icon: 'success' })
-				},
-				fail: (err) => {
-					console.error('[saveImage]', err)
-					const denied = /auth deny|authorize|permission/i.test(err?.errMsg || '')
-					if (denied) {
-						uni.showModal({
-							title: '需要相册权限',
-							content: '请在设置中允许保存到相册',
-							confirmText: '去设置',
-							success: (res) => {
-								if (res.confirm) uni.openSetting()
-							}
-						})
-					} else {
-						uni.showToast({ title: '保存失败', icon: 'none' })
-					}
-				}
+			await new Promise((resolve, reject) => {
+				uni.saveImageToPhotosAlbum({
+					filePath: tempPath,
+					success: resolve,
+					fail: reject
+				})
 			})
+			uni.showToast({ title: '已保存到相册', icon: 'success' })
+			recordTrialUseAfterSuccess()
 		} catch (err) {
 			console.error('[saveImage]', err)
-			uni.showToast({
-				title: err?.message || '导出失败，请重试',
-				icon: 'none'
-			})
+			const denied = /auth deny|authorize|permission/i.test(err?.errMsg || '')
+			if (denied) {
+				uni.showModal({
+					title: '需要相册权限',
+					content: '请在设置中允许保存到相册',
+					confirmText: '去设置',
+					success: (res) => {
+						if (res.confirm) uni.openSetting()
+					}
+				})
+			} else {
+				uni.showToast({
+					title: err?.message || '保存失败，请重试',
+					icon: 'none'
+				})
+			}
 		} finally {
 			saving.value = false
-			uni.hideLoading()
 		}
 	}
 </script>

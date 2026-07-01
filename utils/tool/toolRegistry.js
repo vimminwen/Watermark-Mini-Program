@@ -9,6 +9,9 @@ export const TOOL_MODE = {
 
 /** 工具 id → 页面与能力类型 */
 export const TOOL_ROUTE_MAP = {
+	'63': { mode: TOOL_MODE.FULL, path: '/pages/tool/addWatermark' },
+	'64': { mode: TOOL_MODE.FULL, path: '/pages/tool/removeWatermark' },
+	'65': { mode: TOOL_MODE.FULL, path: '/pages/tool/addPdfWatermark' },
 	'46': { mode: TOOL_MODE.FULL, path: '/pages/tool/imageEdit' },
 	'47': { mode: TOOL_MODE.FULL, path: '/pages/tool/smartErase' },
 	'48': { mode: TOOL_MODE.FULL, path: '/pages/tool/cutout' },

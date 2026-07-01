@@ -62,15 +62,15 @@
 		const item = props.memberData
 
 		// iOS 禁止支付
-		const systemInfo = uni.getSystemInfoSync();
-		if (systemInfo.platform === 'ios') {
-			uni.showToast({
-				title: 'iOS系统暂不支持支付，请使用其他设备',
-				icon: 'none',
-				duration: 3000
-			});
-			return;
-		}
+		// const systemInfo = uni.getSystemInfoSync();
+		// if (systemInfo.platform === 'ios') {
+		// 	uni.showToast({
+		// 		title: 'iOS系统暂不支持支付，请使用其他设备',
+		// 		icon: 'none',
+		// 		duration: 3000
+		// 	});
+		// 	return;
+		// }
 
 		if (!item || !item.id) {
 			uni.showToast({

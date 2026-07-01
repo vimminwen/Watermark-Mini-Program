@@ -2,6 +2,84 @@
 
 	{
 
+		"id": "63",
+
+		"cid": "103",
+
+		"img": "icon-tupianbianji",
+
+		"title": "图片加水印",
+
+		"content": "为图片添加文字或图片水印，支持位置、透明度、大小调节，保护原创版权。",
+
+		"reader": "0",
+
+		"url": "/pages/tool/addWatermark",
+
+		"location": "1",
+
+		"sort": "5",
+
+		"my": "1",
+
+		"del": "0"
+
+	},
+
+	{
+
+		"id": "64",
+
+		"cid": "103",
+
+		"img": "icon-shengchengAI3",
+
+		"title": "图片去水印",
+
+		"content": "智能识别并去除图片中的水印、LOGO 或多余标识，尽量还原干净画面。",
+
+		"reader": "0",
+
+		"url": "/pages/tool/removeWatermark",
+
+		"location": "1",
+
+		"sort": "6",
+
+		"my": "1",
+
+		"del": "0"
+
+	},
+
+	{
+
+		"id": "65",
+
+		"cid": "103",
+
+		"img": "icon-tupianchuli",
+
+		"title": "PDF加水印",
+
+		"content": "为 PDF 文档添加文字或图片水印，支持页码范围、透明度与位置设置。",
+
+		"reader": "0",
+
+		"url": "/pages/tool/addPdfWatermark",
+
+		"location": "1",
+
+		"sort": "7",
+
+		"my": "1",
+
+		"del": "0"
+
+	},
+
+	{
+
 		"id": "46",
 
 		"cid": "103",
@@ -120,7 +198,7 @@
 
 		"url": "/pages/tool/videoRemove",
 
-		"location": "1",
+		"location": "2",
 
 		"sort": "14",
 
@@ -146,7 +224,7 @@
 
 		"url": "/pages/tool/videoTextExtract",
 
-		"location": "1",
+		"location": "2",
 
 		"sort": "16",
 
@@ -216,7 +294,7 @@
 
 		"img": "icon-tupianchuli",
 
-		"title": "图片赛博化",
+		"title": "图片科幻化",
 
 		"content": "将照片转换为赛博朋克风格，霓虹光影、高对比色调，打造未来科幻视觉。",
 
@@ -354,7 +432,7 @@
 
 		"url": "/pages/filter/filter",
 
-		"location": "1",
+		"location": "2",
 
 		"sort": "23",
 

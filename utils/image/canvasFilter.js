@@ -61,43 +61,42 @@ const hslToRgb = (h, s, l) => {
 
 /** 与 CSS filter 顺序一致：brightness → contrast → saturate → grayscale → sepia → hue-rotate */
 const applyEffectsToPixel = (r, g, b, effects) => {
-	r *= effects.brightness;
-	g *= effects.brightness;
-	b *= effects.brightness;
+	const { brightness, contrast, saturate, grayscale, sepia, hueRotate } = effects;
 
-	r = (r - 128) * effects.contrast + 128;
-	g = (g - 128) * effects.contrast + 128;
-	b = (b - 128) * effects.contrast + 128;
+	r *= brightness;
+	g *= brightness;
+	b *= brightness;
 
-	if (effects.saturate !== 1) {
+	r = (r - 128) * contrast + 128;
+	g = (g - 128) * contrast + 128;
+	b = (b - 128) * contrast + 128;
+
+	if (saturate !== 1 || hueRotate !== 0) {
 		let [h, s, l] = rgbToHsl(clamp255(r), clamp255(g), clamp255(b));
-		s = Math.min(1, Math.max(0, s * effects.saturate));
+		if (saturate !== 1) {
+			s = Math.min(1, Math.max(0, s * saturate));
+		}
+		if (hueRotate !== 0) {
+			h = (h + hueRotate / 360) % 1;
+			if (h < 0) h += 1;
+		}
 		[r, g, b] = hslToRgb(h, s, l);
 	}
 
-	if (effects.grayscale > 0) {
+	if (grayscale > 0) {
 		const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-		const amount = effects.grayscale;
-		r = r * (1 - amount) + gray * amount;
-		g = g * (1 - amount) + gray * amount;
-		b = b * (1 - amount) + gray * amount;
+		r = r * (1 - grayscale) + gray * grayscale;
+		g = g * (1 - grayscale) + gray * grayscale;
+		b = b * (1 - grayscale) + gray * grayscale;
 	}
 
-	if (effects.sepia > 0) {
+	if (sepia > 0) {
 		const sepiaR = r * 0.393 + g * 0.769 + b * 0.189;
 		const sepiaG = r * 0.349 + g * 0.686 + b * 0.168;
 		const sepiaB = r * 0.272 + g * 0.534 + b * 0.131;
-		const amount = effects.sepia;
-		r = r * (1 - amount) + sepiaR * amount;
-		g = g * (1 - amount) + sepiaG * amount;
-		b = b * (1 - amount) + sepiaB * amount;
-	}
-
-	if (effects.hueRotate !== 0) {
-		let [h, s, l] = rgbToHsl(clamp255(r), clamp255(g), clamp255(b));
-		h = (h + effects.hueRotate / 360) % 1;
-		if (h < 0) h += 1;
-		[r, g, b] = hslToRgb(h, s, l);
+		r = r * (1 - sepia) + sepiaR * sepia;
+		g = g * (1 - sepia) + sepiaG * sepia;
+		b = b * (1 - sepia) + sepiaB * sepia;
 	}
 
 	return [clamp255(r), clamp255(g), clamp255(b)];
@@ -105,9 +104,9 @@ const applyEffectsToPixel = (r, g, b, effects) => {
 
 const applyFilterToImageData = (imageData, effects) => {
 	const { data } = imageData;
-	for (let i = 0; i < data.length; i += 4) {
-		const alpha = data[i + 3];
-		if (alpha === 0) continue;
+	const len = data.length;
+	for (let i = 0; i < len; i += 4) {
+		if (data[i + 3] === 0) continue;
 		const [r, g, b] = applyEffectsToPixel(data[i], data[i + 1], data[i + 2], effects);
 		data[i] = r;
 		data[i + 1] = g;
@@ -115,6 +114,37 @@ const applyFilterToImageData = (imageData, effects) => {
 	}
 	return imageData;
 };
+
+const exportCanvasToTempFile = (canvas, width, height, scope) =>
+	new Promise((resolve, reject) => {
+		const doExport = () => {
+			const options = {
+				canvas,
+				x: 0,
+				y: 0,
+				width,
+				height,
+				destWidth: width,
+				destHeight: height,
+				fileType: 'jpg',
+				quality: 0.92,
+				success: (fileRes) => resolve(fileRes.tempFilePath),
+				fail: reject
+			};
+
+			if (scope) {
+				uni.canvasToTempFilePath(options, scope);
+			} else {
+				uni.canvasToTempFilePath(options);
+			}
+		};
+
+		if (typeof requestAnimationFrame === 'function') {
+			requestAnimationFrame(() => requestAnimationFrame(doExport));
+		} else {
+			setTimeout(doExport, 32);
+		}
+	});
 
 /**
  * 使用 Canvas 2D 导出带滤镜的图片（像素级处理，兼容微信小程序真机）
@@ -151,7 +181,7 @@ export const exportImageWithFilter = (canvasSelector, imagePath, effects, compon
 				const filterEffects = effects || {};
 				const needPixelFilter = !isIdentityFilterEffects(filterEffects);
 
-				img.onload = () => {
+				img.onload = async () => {
 					let width = img.width;
 					let height = img.height;
 					const maxSide = Math.max(width, height);
@@ -162,19 +192,18 @@ export const exportImageWithFilter = (canvasSelector, imagePath, effects, compon
 						height = Math.round(height * scale);
 					}
 
-					const dpr = uni.getSystemInfoSync().pixelRatio || 2;
-					const canvasWidth = width * dpr;
-					const canvasHeight = height * dpr;
-					canvas.width = canvasWidth;
-					canvas.height = canvasHeight;
+					canvas.width = width;
+					canvas.height = height;
 					ctx.setTransform(1, 0, 0, 1, 0, 0);
-					ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+					ctx.imageSmoothingEnabled = true;
+					ctx.imageSmoothingQuality = 'high';
+					ctx.clearRect(0, 0, width, height);
 					ctx.filter = 'none';
-					ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight);
+					ctx.drawImage(img, 0, 0, width, height);
 
 					if (needPixelFilter) {
 						try {
-							const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+							const imageData = ctx.getImageData(0, 0, width, height);
 							applyFilterToImageData(imageData, filterEffects);
 							ctx.putImageData(imageData, 0, 0);
 						} catch (e) {
@@ -184,18 +213,11 @@ export const exportImageWithFilter = (canvasSelector, imagePath, effects, compon
 						}
 					}
 
-					const options = {
-						canvas,
-						fileType: 'jpg',
-						quality: 0.92,
-						success: (fileRes) => resolve(fileRes.tempFilePath),
-						fail: (err) => reject(err)
-					};
-
-					if (scope) {
-						uni.canvasToTempFilePath(options, scope);
-					} else {
-						uni.canvasToTempFilePath(options);
+					try {
+						const tempPath = await exportCanvasToTempFile(canvas, width, height, scope);
+						resolve(tempPath);
+					} catch (err) {
+						reject(err);
 					}
 				};
 

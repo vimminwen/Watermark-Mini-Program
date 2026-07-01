@@ -16,69 +16,77 @@
 
 			</view>
 
-			<view v-else class="erase-stage" id="eraseStage">
+			<template v-else>
 
-				<image
+				<view class="erase-stage" id="eraseStage">
 
-					class="stage-image"
+					<image
 
-					:src="displayImage"
+						class="stage-image"
 
-					mode="aspectFit"
+						:src="displayImage"
 
-					@load="onImageLoad"
+						mode="aspectFit"
 
-					@tap="onPreviewTap"
+						@load="onImageLoad"
 
-				/>
-
-				<view
-
-					v-if="stageReady && !resultPath"
-
-					class="mask-layer"
-
-					:style="maskLayerStyle"
-
-					@touchstart.stop="onMaskTouchStart"
-
-					@touchmove.stop.prevent="onMaskTouchMove"
-
-					@touchend.stop="onMaskTouchEnd"
-
-					@touchcancel.stop="onMaskTouchEnd"
-
-				>
-
-					<canvas
-
-						type="2d"
-
-						id="maskCanvas"
-
-						class="mask-canvas"
-
-						:style="maskCanvasStyle"
-
-						:disable-scroll="true"
+						@tap="onPreviewTap"
 
 					/>
 
+					<view
+
+						v-if="stageReady && !resultPath"
+
+						class="mask-layer"
+
+						:style="maskLayerStyle"
+
+						@touchstart.stop="onMaskTouchStart"
+
+						@touchmove.stop.prevent="onMaskTouchMove"
+
+						@touchend.stop="onMaskTouchEnd"
+
+						@touchcancel.stop="onMaskTouchEnd"
+
+					>
+
+						<canvas
+
+							type="2d"
+
+							id="maskCanvas"
+
+							class="mask-canvas"
+
+							:style="maskCanvasStyle"
+
+							:disable-scroll="true"
+
+						/>
+
+					</view>
+
+					<view v-if="resultPath" class="size-badge size-badge-pass">
+
+						<text>消除完成 · 点击预览</text>
+
+					</view>
+
 				</view>
 
-				<view v-if="resultPath" class="size-badge">
-
-					<text>消除完成 · 点击预览</text>
-
-				</view>
-
-				<view v-else-if="stageReady" class="size-badge">
+				<view
+					v-if="stageReady && !resultPath"
+					class="stage-hint-bar"
+					:style="stageHintStyle"
+				>
 
 					<text>涂抹要消除的区域，可多次涂抹</text>
 
 				</view>
 
-			</view>
+			</template>
 
 		</view>
 
@@ -244,7 +252,7 @@
 
 	import { isApiSuccess, getApiMessage } from '@/utils/user/authHelper.js'
 
-	import { checkLogin } from '@/utils/user/auth.js'
+	import { checkLogin, beforeUploadCheck, recordTrialUseAfterSuccess } from '@/utils/user/auth.js'
 
 	import { uploadImageToOss } from '@/utils/image/ossUpload.js'
 
@@ -365,6 +373,24 @@
 			width: `${d.w}px`,
 
 			height: `${d.h}px`
+
+		}
+
+	})
+
+
+
+	const stageHintStyle = computed(() => {
+
+		const d = displayRect.value
+
+		if (!d.w || !d.h) return {}
+
+		return {
+
+			width: `${d.w}px`,
+
+			marginLeft: `${d.x}px`
 
 		}
 
@@ -782,7 +808,8 @@
 
 
 
-	const chooseImage = () => {
+	const chooseImage = async () => {
+		if (!(await beforeUploadCheck())) return
 
 		uni.chooseImage({
 
@@ -1135,6 +1162,7 @@
 			resultPath.value = localPath
 
 			logOk('消除完成')
+			recordTrialUseAfterSuccess()
 
 			uni.showToast({ title: '消除完成', icon: 'success' })
 
@@ -1396,9 +1424,7 @@
 
 		background: rgba(0, 0, 0, 0.55);
 
-		z-index: 1;
-
-		pointer-events: none;
+		z-index: 10;
 
 
 
@@ -1407,6 +1433,38 @@
 			font-size: 24rpx;
 
 			color: #4facfe;
+
+		}
+
+	}
+
+
+
+	.size-badge-pass {
+
+		pointer-events: none;
+
+	}
+
+
+
+	.stage-hint-bar {
+
+		padding: 12rpx 0 20rpx;
+
+		box-sizing: border-box;
+
+		text-align: center;
+
+
+
+		text {
+
+			font-size: 24rpx;
+
+			color: #4facfe;
+
+			line-height: 1.4;
 
 		}
 

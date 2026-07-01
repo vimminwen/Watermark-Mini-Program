@@ -7,6 +7,7 @@ import {
 	isVideoWithinRemovePixelLimit,
 	getVideoRemovePixelLimitMessage
 } from '@/utils/video/subtitleRemoval.js'
+import { beforeUploadCheck } from '@/utils/user/auth.js'
 
 /** 音视频转文字：最长时长（秒） */
 export const TEXT_MEDIA_MAX_DURATION = 45
@@ -85,7 +86,16 @@ export const getLocalAudioDuration = (filePath) =>
  * 选择视频（转文字）
  * @returns {Promise<{ path, thumbPath, size, width, height, duration, mediaType: 'video', name: string }>}
  */
-export const pickLocalVideoForText = (options = {}) => {
+export const pickLocalVideoForText = async (options = {}) => {
+	if (!options.skipUploadGuard) {
+		const allowed = await beforeUploadCheck()
+		if (!allowed) {
+			const err = new Error('UPLOAD_AUTH_DENIED')
+			err.code = 'UPLOAD_AUTH_DENIED'
+			throw err
+		}
+	}
+
 	const maxSize = options.maxSize ?? TEXT_MEDIA_MAX_SIZE
 	const maxDuration = options.maxDuration ?? TEXT_MEDIA_MAX_DURATION
 
@@ -275,6 +285,7 @@ export const showPickTextMediaSheet = () =>
 	})
 
 export const handlePickTextMediaError = (err) => {
+	if (err?.code === 'UPLOAD_AUTH_DENIED') return
 	if (isUserCancelError(err)) return
 
 	if (isPrivacyScopeNotDeclared(err)) {

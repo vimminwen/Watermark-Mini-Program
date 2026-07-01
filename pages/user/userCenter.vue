@@ -141,7 +141,7 @@
 		return {
 			id: String(user.id ?? user.userId ?? prev.id ?? ''),
 			phone: user.phone ?? prev.phone ?? '',
-			nickname: user.nickname ?? prev.nickname ?? '云途汇水印用户',
+			nickname: user.nickname ?? prev.nickname ?? '汇水印用户',
 			email: user.email ?? prev.email ?? '',
 			avatar: image,
 			level: user.level ?? user.vipType ?? user.type ?? prev.level ?? '普通用户',
@@ -303,7 +303,7 @@
 
 		const res = await apiModifyUserInfo({
 			id: userId,
-			nickname: userInfo.value.nickname?.trim() || '云途汇水印用户',
+			nickname: userInfo.value.nickname?.trim() || '汇水印用户',
 			email: userInfo.value.email?.trim() || '',
 			image: imageUrl
 		})
@@ -320,7 +320,7 @@
 		if (avatarUploading.value || saving.value) return
 
 		try {
-			const picked = await pickLocalImage({ maxSize: 5 * 1024 * 1024 })
+			const picked = await pickLocalImage({ maxSize: 5 * 1024 * 1024, skipUploadGuard: true })
 			avatarUploading.value = true
 			uni.showLoading({ title: '上传头像中...', mask: true })
 
